@@ -1,0 +1,6 @@
+date,item_name,quantity,unit_price,total_price,shipping_cost,post_code,currency
+2024-01-10,Raw Material X,100,0.50,50.00,5.00,SW1A 1AA,GBP
+2024-01-20,Raw Material Y,200,0.25,50.00,3.00,EC1A 1BB,GBP
+2024-02-01,Component Z,50,1.00,50.00,4.00,W1A 1AB,GBP
+2024-02-15,Raw Material X,150,0.50,75.00,5.00,N1 9GU,GBP
+2024-03-05,Packaging,500,0.10,50.00,8.00,E1 6AN,GBP

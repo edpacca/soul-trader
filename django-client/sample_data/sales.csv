@@ -1,0 +1,6 @@
+date,item_name,quantity,unit_price,total_price,shipping_cost,post_code,currency
+2024-01-15,Widget A,10,5.00,50.00,3.50,SW1A 1AA,GBP
+2024-01-22,Widget B,5,12.00,60.00,4.00,EC1A 1BB,GBP
+2024-02-03,Gadget C,20,2.50,50.00,5.00,W1A 1AB,GBP
+2024-02-14,Widget A,15,5.00,75.00,3.50,N1 9GU,GBP
+2024-03-01,Gadget D,8,25.00,200.00,10.00,E1 6AN,USD

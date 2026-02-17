@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<h1>Sales &amp; Purchases Dashboard</h1>
+
+<section class="filter-section">
+    <form method="get" action="{% url 'records:dashboard' %}">
+        <label for="start_date">Start Date:</label>
+        <input type="date" id="start_date" name="start_date" value="{{ start_date }}">
+
+        <label for="end_date">End Date:</label>
+        <input type="date" id="end_date" name="end_date" value="{{ end_date }}">
+
+        <button type="submit">Query</button>
+    </form>
+</section>
+
+<section class="summary-section">
+    <h2>Summary</h2>
+    <table class="summary-table">
+        <thead>
+            <tr>
+                <th>Total Sales</th>
+                <th>Total Purchases</th>
+                <th>Net Profit</th>
+                <th>Sales Count</th>
+                <th>Purchases Count</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ summary.total_sales }}</td>
+                <td>{{ summary.total_purchases }}</td>
+                <td class="{% if summary.net_profit >= 0 %}profit-positive{% else %}profit-negative{% endif %}">
+                    {{ summary.net_profit }}
+                </td>
+                <td>{{ summary.sales_count }}</td>
+                <td>{{ summary.purchases_count }}</td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+
+<section class="data-section">
+    <h2>Sales Records</h2>
+    {% if sales %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Item</th>
+                <th>Quantity</th>
+                <th>Unit Price</th>
+                <th>Total Price</th>
+                <th>Shipping</th>
+                <th>Post Code</th>
+                <th>Currency</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in sales %}
+            <tr>
+                <td>{{ record.date }}</td>
+                <td>{{ record.item_name }}</td>
+                <td>{{ record.quantity }}</td>
+                <td>{{ record.unit_price }}</td>
+                <td>{{ record.total_price }}</td>
+                <td>{{ record.shipping_cost }}</td>
+                <td>{{ record.post_code }}</td>
+                <td>{{ record.currency }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No sales records found for the selected date range.</p>
+    {% endif %}
+</section>
+
+<section class="data-section">
+    <h2>Purchase Records</h2>
+    {% if purchases %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Item</th>
+                <th>Quantity</th>
+                <th>Unit Price</th>
+                <th>Total Price</th>
+                <th>Shipping</th>
+                <th>Post Code</th>
+                <th>Currency</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in purchases %}
+            <tr>
+                <td>{{ record.date }}</td>
+                <td>{{ record.item_name }}</td>
+                <td>{{ record.quantity }}</td>
+                <td>{{ record.unit_price }}</td>
+                <td>{{ record.total_price }}</td>
+                <td>{{ record.shipping_cost }}</td>
+                <td>{{ record.post_code }}</td>
+                <td>{{ record.currency }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No purchase records found for the selected date range.</p>
+    {% endif %}
+</section>
+{% endblock %}
