@@ -125,3 +125,59 @@ tbody tr:hover {
     color: #e74c3c;
     font-weight: 600;
 }
+
+.filter-section select {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    background-color: #fff;
+}
+
+.pagination {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+.pagination-link {
+    display: inline-block;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #3498db;
+    font-size: 0.9rem;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.pagination-link:hover:not(.disabled):not(.active) {
+    background-color: #3498db;
+    color: #fff;
+}
+
+.pagination-link.active {
+    background-color: #3498db;
+    color: #fff;
+    border-color: #3498db;
+    font-weight: 600;
+}
+
+.pagination-link.disabled {
+    color: #aaa;
+    border-color: #eee;
+    cursor: default;
+}
+
+.pagination-ellipsis {
+    padding: 0.4rem 0.5rem;
+    color: #999;
+}
+
+.pagination-info {
+    margin-left: 1rem;
+    font-size: 0.85rem;
+    color: #666;
+}

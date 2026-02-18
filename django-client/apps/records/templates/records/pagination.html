@@ -1,0 +1,31 @@
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="pagination">
+    {% if page_obj.has_previous %}
+    <a href="?{% for key, value in request.GET.items %}{% if key != page_param %}{{ key }}={{ value }}&{% endif %}{% endfor %}{{ page_param }}={{ page_obj.previous_page_number }}" class="pagination-link">&laquo; Prev</a>
+    {% else %}
+    <span class="pagination-link disabled">&laquo; Prev</span>
+    {% endif %}
+
+    {% for num in page_obj.paginator.page_range %}
+        {% if num == page_obj.number %}
+        <span class="pagination-link active">{{ num }}</span>
+        {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+        <a href="?{% for key, value in request.GET.items %}{% if key != page_param %}{{ key }}={{ value }}&{% endif %}{% endfor %}{{ page_param }}={{ num }}" class="pagination-link">{{ num }}</a>
+        {% elif num == 1 or num == page_obj.paginator.num_pages %}
+        <a href="?{% for key, value in request.GET.items %}{% if key != page_param %}{{ key }}={{ value }}&{% endif %}{% endfor %}{{ page_param }}={{ num }}" class="pagination-link">{{ num }}</a>
+        {% elif num == 2 and page_obj.number > 4 %}
+        <span class="pagination-ellipsis">&hellip;</span>
+        {% elif num == page_obj.paginator.num_pages|add:"-1" and page_obj.number < page_obj.paginator.num_pages|add:"-3" %}
+        <span class="pagination-ellipsis">&hellip;</span>
+        {% endif %}
+    {% endfor %}
+
+    {% if page_obj.has_next %}
+    <a href="?{% for key, value in request.GET.items %}{% if key != page_param %}{{ key }}={{ value }}&{% endif %}{% endfor %}{{ page_param }}={{ page_obj.next_page_number }}" class="pagination-link">Next &raquo;</a>
+    {% else %}
+    <span class="pagination-link disabled">Next &raquo;</span>
+    {% endif %}
+
+    <span class="pagination-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+</nav>
+{% endif %}

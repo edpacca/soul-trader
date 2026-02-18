@@ -13,6 +13,13 @@
         <label for="end_date">End Date:</label>
         <input type="date" id="end_date" name="end_date" value="{{ end_date }}">
 
+        <label for="page_size">Page Size:</label>
+        <select id="page_size" name="page_size">
+            {% for size in allowed_page_sizes %}
+            <option value="{{ size }}" {% if size == page_size %}selected{% endif %}>{{ size }}</option>
+            {% endfor %}
+        </select>
+
         <button type="submit">Query</button>
     </form>
 </section>
@@ -74,6 +81,7 @@
             {% endfor %}
         </tbody>
     </table>
+    {% include "records/pagination.html" with page_obj=sales page_param="sales_page" %}
     {% else %}
     <p>No sales records found for the selected date range.</p>
     {% endif %}
@@ -110,6 +118,7 @@
             {% endfor %}
         </tbody>
     </table>
+    {% include "records/pagination.html" with page_obj=purchases page_param="purchases_page" %}
     {% else %}
     <p>No purchase records found for the selected date range.</p>
     {% endif %}
