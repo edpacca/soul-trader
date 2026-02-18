@@ -107,6 +107,232 @@ class TestDashboardView(TestCase):
         self.assertContains(response, "Raw Material X")
         self.assertContains(response, "Raw Material Y")
 
+    def test_sort_sales_by_item_name_asc(self):
+        response = self.client.get(
+            self.url,
+            {
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "sales_sort": "item_name",
+                "sales_order": "asc",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        sales = list(response.context["sales"])
+        self.assertEqual(sales[0].item_name, "Widget A")
+        self.assertEqual(sales[1].item_name, "Widget B")
+
+    def test_sort_sales_by_item_name_desc(self):
+        response = self.client.get(
+            self.url,
+            {
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "sales_sort": "item_name",
+                "sales_order": "desc",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        sales = list(response.context["sales"])
+        self.assertEqual(sales[0].item_name, "Widget B")
+        self.assertEqual(sales[1].item_name, "Widget A")
+
+    def test_sort_purchases_by_date_asc(self):
+        response = self.client.get(
+            self.url,
+            {
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "purchases_sort": "date",
+                "purchases_order": "asc",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        purchases = list(response.context["purchases"])
+        self.assertEqual(purchases[0].item_name, "Raw Material X")
+        self.assertEqual(purchases[1].item_name, "Raw Material Y")
+
+    def test_filter_sales_by_item_name(self):
+        response = self.client.get(
+            self.url,
+            {
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "sales_item_name": "Widget A",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Widget A")
+        self.assertNotContains(response, "Widget B")
+
+    def test_filter_sales_by_price_range(self):
+        response = self.client.get(
+            self.url,
+            {
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "sales_price_min": "55",
+                "sales_price_max": "100",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        sales = list(response.context["sales"])
+        self.assertEqual(len(sales), 1)
+        self.assertEqual(sales[0].item_name, "Widget B")
+
+    def test_filter_sales_by_post_code(self):
+        response = self.client.get(
+            self.url,
+            {
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "sales_post_code": "SW1A",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        sales = list(response.context["sales"])
+        self.assertEqual(len(sales), 1)
+        self.assertEqual(sales[0].item_name, "Widget A")
+
+    def test_filter_purchases_by_item_name(self):
+        response = self.client.get(
+            self.url,
+            {
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "purchases_item_name": "Material X",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        purchases = list(response.context["purchases"])
+        self.assertEqual(len(purchases), 1)
+        self.assertEqual(purchases[0].item_name, "Raw Material X")
+
+    def test_combined_filters_and_sort(self):
+        response = self.client.get(
+            self.url,
+            {
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "sales_item_name": "Widget",
+                "sales_sort": "total_price",
+                "sales_order": "desc",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        sales = list(response.context["sales"])
+        self.assertEqual(len(sales), 2)
+        self.assertEqual(sales[0].item_name, "Widget B")
+        self.assertEqual(sales[1].item_name, "Widget A")
+
+    def test_sync_filters_copies_sales_to_purchases(self):
+        response = self.client.get(
+            self.url,
+            {
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "sync_filters": "on",
+                "sales_item_name": "Widget",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        sales = list(response.context["sales"])
+        purchases = list(response.context["purchases"])
+        self.assertEqual(len(sales), 2)
+        self.assertEqual(len(purchases), 0)
+
+    def test_sync_filters_copies_purchases_to_sales(self):
+        response = self.client.get(
+            self.url,
+            {
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "sync_filters": "on",
+                "purchases_item_name": "Raw",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        sales = list(response.context["sales"])
+        purchases = list(response.context["purchases"])
+        self.assertEqual(len(sales), 0)
+        self.assertEqual(len(purchases), 2)
+
+    def test_invalid_sort_field_ignored(self):
+        response = self.client.get(
+            self.url,
+            {
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "sales_sort": "hacked_field",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(list(response.context["sales"])), 2)
+
+    def test_filter_state_in_context(self):
+        response = self.client.get(
+            self.url,
+            {
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "sales_item_name": "Widget",
+                "sales_sort": "date",
+                "sales_order": "desc",
+            },
+        )
+        self.assertEqual(response.context["sales_filters"]["item_name"], "Widget")
+        self.assertEqual(response.context["sales_sort"], "date")
+        self.assertEqual(response.context["sales_order"], "desc")
+
+    def test_sort_headers_rendered(self):
+        response = self.client.get(
+            self.url, {"start_date": "2024-01-01", "end_date": "2024-12-31"}
+        )
+        self.assertContains(response, "sortable")
+        self.assertContains(response, "sales_sort=date")
+
+    def test_filter_sales_by_multiple_item_names(self):
+        response = self.client.get(
+            self.url,
+            {
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "sales_item_name": "Widget A, Widget B",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        sales = list(response.context["sales"])
+        self.assertEqual(len(sales), 2)
+
+    def test_filter_sales_by_multiple_item_names_partial_match(self):
+        response = self.client.get(
+            self.url,
+            {
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "sales_item_name": "Widget A, Nonexistent",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        sales = list(response.context["sales"])
+        self.assertEqual(len(sales), 1)
+        self.assertEqual(sales[0].item_name, "Widget A")
+
+    def test_filter_multiple_item_names_combined_with_price(self):
+        response = self.client.get(
+            self.url,
+            {
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "sales_item_name": "Widget A, Widget B",
+                "sales_price_min": "55",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        sales = list(response.context["sales"])
+        self.assertEqual(len(sales), 1)
+        self.assertEqual(sales[0].item_name, "Widget B")
+
     def test_context_contains_page_objects(self):
         response = self.client.get(
             self.url, {"start_date": "2024-01-01", "end_date": "2024-12-31"}
