@@ -68,6 +68,41 @@ The dashboard at http://localhost:8000/ allows you to:
 - View a summary showing total sales, total purchases, and net profit
 - Browse individual sales and purchase records in tables
 
+## Local Development (without Docker)
+
+You can run the application locally using SQLite instead of PostgreSQL. This is convenient for development and does not require Docker.
+
+> **Note:** This setup is for development only. Production deployments should use PostgreSQL via Docker.
+
+### Prerequisites
+
+- Python 3.x installed
+- Install dependencies:
+
+  ```bash
+  pip install -r requirements.txt
+  ```
+
+### Run Migrations
+
+```bash
+python manage.py migrate --settings=config.settings_local
+```
+
+### Create a Superuser
+
+```bash
+python manage.py createsuperuser --settings=config.settings_local
+```
+
+### Start the Development Server
+
+```bash
+python manage.py runserver --settings=config.settings_local
+```
+
+The application will be available at http://localhost:8000/.
+
 ## Running Tests
 
 Tests use Django's built-in test framework. A dedicated test settings file (`config/settings_test.py`) uses an in-memory SQLite database so tests can run without PostgreSQL.
@@ -86,6 +121,8 @@ python manage.py test --settings=config.settings_test
 django-client/
 ├── config/                  # Django project configuration
 │   ├── settings.py          # Settings (DB, apps, middleware)
+│   ├── settings_local.py    # Local dev settings (SQLite)
+│   ├── settings_test.py     # Test settings (in-memory SQLite)
 │   ├── urls.py              # Root URL configuration
 │   └── wsgi.py              # WSGI entry point
 ├── apps/
