@@ -57,7 +57,12 @@ class TestDashboardView(TestCase):
 
     def test_dashboard_with_date_filter(self):
         response = self.client.get(
-            self.url, {"start_date": "2024-01-01", "end_date": "2024-01-31"}
+            self.url, {
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-01-31",
+                "purchases_start_date": "2024-01-01",
+                "purchases_end_date": "2024-01-31",
+            }
         )
         self.assertEqual(response.status_code, 200)
 
@@ -70,7 +75,12 @@ class TestDashboardView(TestCase):
 
     def test_dashboard_full_range(self):
         response = self.client.get(
-            self.url, {"start_date": "2024-01-01", "end_date": "2024-12-31"}
+            self.url, {
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
+                "purchases_start_date": "2024-01-01",
+                "purchases_end_date": "2024-12-31",
+            }
         )
         self.assertEqual(response.status_code, 200)
 
@@ -83,7 +93,12 @@ class TestDashboardView(TestCase):
 
     def test_dashboard_no_results(self):
         response = self.client.get(
-            self.url, {"start_date": "2025-01-01", "end_date": "2025-12-31"}
+            self.url, {
+                "sales_start_date": "2025-01-01",
+                "sales_end_date": "2025-12-31",
+                "purchases_start_date": "2025-01-01",
+                "purchases_end_date": "2025-12-31",
+            }
         )
         self.assertEqual(response.status_code, 200)
 
@@ -94,14 +109,12 @@ class TestDashboardView(TestCase):
 
     def test_dashboard_invalid_dates_use_defaults(self):
         response = self.client.get(
-            self.url, {"start_date": "not-a-date", "end_date": "also-bad"}
+            self.url, {"sales_start_date": "not-a-date", "sales_end_date": "also-bad"}
         )
         self.assertEqual(response.status_code, 200)
 
-    def test_dashboard_shows_records_in_template(self):
-        response = self.client.get(
-            self.url, {"start_date": "2024-01-01", "end_date": "2024-12-31"}
-        )
+    def test_dashboard_shows_all_records_by_default(self):
+        response = self.client.get(self.url)
         self.assertContains(response, "Widget A")
         self.assertContains(response, "Widget B")
         self.assertContains(response, "Raw Material X")
@@ -111,8 +124,8 @@ class TestDashboardView(TestCase):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
                 "sales_sort": "item_name",
                 "sales_order": "asc",
             },
@@ -126,8 +139,8 @@ class TestDashboardView(TestCase):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
                 "sales_sort": "item_name",
                 "sales_order": "desc",
             },
@@ -141,8 +154,8 @@ class TestDashboardView(TestCase):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "purchases_start_date": "2024-01-01",
+                "purchases_end_date": "2024-12-31",
                 "purchases_sort": "date",
                 "purchases_order": "asc",
             },
@@ -156,8 +169,8 @@ class TestDashboardView(TestCase):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
                 "sales_item_name": "Widget A",
             },
         )
@@ -169,8 +182,8 @@ class TestDashboardView(TestCase):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
                 "sales_price_min": "55",
                 "sales_price_max": "100",
             },
@@ -184,8 +197,8 @@ class TestDashboardView(TestCase):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
                 "sales_post_code": "SW1A",
             },
         )
@@ -198,8 +211,8 @@ class TestDashboardView(TestCase):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "purchases_start_date": "2024-01-01",
+                "purchases_end_date": "2024-12-31",
                 "purchases_item_name": "Material X",
             },
         )
@@ -212,8 +225,8 @@ class TestDashboardView(TestCase):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
                 "sales_item_name": "Widget",
                 "sales_sort": "total_price",
                 "sales_order": "desc",
@@ -229,8 +242,10 @@ class TestDashboardView(TestCase):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
+                "purchases_start_date": "2024-01-01",
+                "purchases_end_date": "2024-12-31",
                 "sync_filters": "on",
                 "sales_item_name": "Widget",
             },
@@ -245,8 +260,10 @@ class TestDashboardView(TestCase):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
+                "purchases_start_date": "2024-01-01",
+                "purchases_end_date": "2024-12-31",
                 "sync_filters": "on",
                 "purchases_item_name": "Raw",
             },
@@ -261,8 +278,8 @@ class TestDashboardView(TestCase):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
                 "sales_sort": "hacked_field",
             },
         )
@@ -273,8 +290,8 @@ class TestDashboardView(TestCase):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
                 "sales_item_name": "Widget",
                 "sales_sort": "date",
                 "sales_order": "desc",
@@ -286,7 +303,10 @@ class TestDashboardView(TestCase):
 
     def test_sort_headers_rendered(self):
         response = self.client.get(
-            self.url, {"start_date": "2024-01-01", "end_date": "2024-12-31"}
+            self.url, {
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
+            }
         )
         self.assertContains(response, "sortable")
         self.assertContains(response, "sales_sort=date")
@@ -295,8 +315,8 @@ class TestDashboardView(TestCase):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
                 "sales_item_name": "Widget A, Widget B",
             },
         )
@@ -308,8 +328,8 @@ class TestDashboardView(TestCase):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
                 "sales_item_name": "Widget A, Nonexistent",
             },
         )
@@ -322,8 +342,8 @@ class TestDashboardView(TestCase):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
                 "sales_item_name": "Widget A, Widget B",
                 "sales_price_min": "55",
             },
@@ -335,14 +355,20 @@ class TestDashboardView(TestCase):
 
     def test_context_contains_page_objects(self):
         response = self.client.get(
-            self.url, {"start_date": "2024-01-01", "end_date": "2024-12-31"}
+            self.url, {
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
+            }
         )
         self.assertIsInstance(response.context["sales"], Page)
         self.assertIsInstance(response.context["purchases"], Page)
 
     def test_default_page_size_is_25(self):
         response = self.client.get(
-            self.url, {"start_date": "2024-01-01", "end_date": "2024-12-31"}
+            self.url, {
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
+            }
         )
         self.assertEqual(response.context["page_size"], 25)
         self.assertEqual(response.context["sales"].paginator.per_page, 25)
@@ -350,7 +376,11 @@ class TestDashboardView(TestCase):
     def test_page_size_50(self):
         response = self.client.get(
             self.url,
-            {"start_date": "2024-01-01", "end_date": "2024-12-31", "page_size": "50"},
+            {
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
+                "page_size": "50",
+            },
         )
         self.assertEqual(response.context["page_size"], 50)
         self.assertEqual(response.context["sales"].paginator.per_page, 50)
@@ -359,8 +389,8 @@ class TestDashboardView(TestCase):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
                 "page_size": "100",
             },
         )
@@ -369,7 +399,11 @@ class TestDashboardView(TestCase):
     def test_invalid_page_size_falls_back_to_default(self):
         response = self.client.get(
             self.url,
-            {"start_date": "2024-01-01", "end_date": "2024-12-31", "page_size": "10"},
+            {
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
+                "page_size": "10",
+            },
         )
         self.assertEqual(response.context["page_size"], 25)
 
@@ -377,8 +411,8 @@ class TestDashboardView(TestCase):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
                 "page_size": "abc",
             },
         )
@@ -417,7 +451,10 @@ class TestPaginationBehaviour(TestCase):
 
     def test_sales_page_1_default(self):
         response = self.client.get(
-            self.url, {"start_date": "2024-01-01", "end_date": "2024-12-31"}
+            self.url, {
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
+            }
         )
         sales_page = response.context["sales"]
         self.assertEqual(sales_page.number, 1)
@@ -428,7 +465,11 @@ class TestPaginationBehaviour(TestCase):
     def test_sales_page_2(self):
         response = self.client.get(
             self.url,
-            {"start_date": "2024-01-01", "end_date": "2024-12-31", "sales_page": "2"},
+            {
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
+                "sales_page": "2",
+            },
         )
         sales_page = response.context["sales"]
         self.assertEqual(sales_page.number, 2)
@@ -440,8 +481,8 @@ class TestPaginationBehaviour(TestCase):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "purchases_start_date": "2024-01-01",
+                "purchases_end_date": "2024-12-31",
                 "purchases_page": "2",
             },
         )
@@ -453,8 +494,10 @@ class TestPaginationBehaviour(TestCase):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
+                "purchases_start_date": "2024-01-01",
+                "purchases_end_date": "2024-12-31",
                 "sales_page": "2",
                 "purchases_page": "1",
             },
@@ -466,8 +509,8 @@ class TestPaginationBehaviour(TestCase):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
                 "sales_page": "999",
             },
         )
@@ -478,8 +521,8 @@ class TestPaginationBehaviour(TestCase):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
                 "sales_page": "abc",
             },
         )
@@ -489,20 +532,20 @@ class TestPaginationBehaviour(TestCase):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
                 "sales_page": "1",
             },
         )
-        self.assertEqual(response.context["start_date"], "2024-01-01")
-        self.assertEqual(response.context["end_date"], "2024-12-31")
+        self.assertEqual(response.context["sales_start_date"], "2024-01-01")
+        self.assertEqual(response.context["sales_end_date"], "2024-12-31")
 
     def test_page_size_with_pagination(self):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
                 "page_size": "50",
             },
         )
@@ -512,7 +555,10 @@ class TestPaginationBehaviour(TestCase):
 
     def test_pagination_controls_shown_when_multiple_pages(self):
         response = self.client.get(
-            self.url, {"start_date": "2024-01-01", "end_date": "2024-12-31"}
+            self.url, {
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
+            }
         )
         self.assertContains(response, 'class="pagination"')
         self.assertContains(response, "Next")
@@ -521,9 +567,231 @@ class TestPaginationBehaviour(TestCase):
         response = self.client.get(
             self.url,
             {
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
                 "page_size": "50",
             },
         )
         self.assertNotContains(response, 'class="pagination"')
+
+
+class TestSalesDetailView(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.url = reverse("records:sales_detail")
+
+        SalesRecord.objects.create(
+            date=date(2024, 1, 15),
+            item_name="Widget A",
+            quantity=10,
+            unit_price=Decimal("5.00"),
+            total_price=Decimal("50.00"),
+            shipping_cost=Decimal("3.50"),
+            post_code="SW1A 1AA",
+        )
+        SalesRecord.objects.create(
+            date=date(2024, 2, 20),
+            item_name="Widget B",
+            quantity=5,
+            unit_price=Decimal("12.00"),
+            total_price=Decimal("60.00"),
+            shipping_cost=Decimal("4.00"),
+            post_code="EC1A 1BB",
+        )
+
+    def test_sales_detail_loads(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "records/sales_detail.html")
+
+    def test_sales_detail_shows_all_records_without_date(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "Widget A")
+        self.assertContains(response, "Widget B")
+
+    def test_sales_detail_with_date_filter(self):
+        response = self.client.get(
+            self.url, {"start_date": "2024-01-01", "end_date": "2024-01-31"}
+        )
+        self.assertEqual(response.status_code, 200)
+        records = list(response.context["records"])
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0].item_name, "Widget A")
+
+    def test_sales_detail_column_totals(self):
+        response = self.client.get(self.url)
+        totals = response.context["column_totals"]
+        self.assertEqual(totals["total_price"], Decimal("110.00"))
+        self.assertEqual(totals["shipping_cost"], Decimal("7.50"))
+        self.assertEqual(totals["quantity"], 15)
+
+    def test_sales_detail_column_totals_with_date_filter(self):
+        response = self.client.get(
+            self.url, {"start_date": "2024-01-01", "end_date": "2024-01-31"}
+        )
+        totals = response.context["column_totals"]
+        self.assertEqual(totals["total_price"], Decimal("50.00"))
+        self.assertEqual(totals["shipping_cost"], Decimal("3.50"))
+        self.assertEqual(totals["quantity"], 10)
+
+    def test_sales_detail_contains_postcode(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "Post Code")
+        self.assertContains(response, "SW1A 1AA")
+
+    def test_sales_detail_has_postcode_toggle(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "toggle-postcode")
+
+    def test_sales_detail_sorting(self):
+        response = self.client.get(
+            self.url, {"sales_sort": "item_name", "sales_order": "desc"}
+        )
+        records = list(response.context["records"])
+        self.assertEqual(records[0].item_name, "Widget B")
+        self.assertEqual(records[1].item_name, "Widget A")
+
+    def test_sales_detail_no_results(self):
+        response = self.client.get(
+            self.url, {"start_date": "2025-01-01", "end_date": "2025-12-31"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No sales records found")
+
+    def test_sales_detail_page_size(self):
+        response = self.client.get(self.url, {"page_size": "50"})
+        self.assertEqual(response.context["page_size"], 50)
+
+
+class TestPurchasesDetailView(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.url = reverse("records:purchases_detail")
+
+        PurchaseRecord.objects.create(
+            date=date(2024, 1, 10),
+            item_name="Raw Material X",
+            quantity=100,
+            unit_price=Decimal("0.50"),
+            total_price=Decimal("50.00"),
+            shipping_cost=Decimal("5.00"),
+            post_code="N1 9GU",
+        )
+        PurchaseRecord.objects.create(
+            date=date(2024, 3, 1),
+            item_name="Raw Material Y",
+            quantity=50,
+            unit_price=Decimal("1.00"),
+            total_price=Decimal("50.00"),
+            shipping_cost=Decimal("3.00"),
+            post_code="E1 6AN",
+        )
+
+    def test_purchases_detail_loads(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "records/purchases_detail.html")
+
+    def test_purchases_detail_shows_all_records_without_date(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "Raw Material X")
+        self.assertContains(response, "Raw Material Y")
+
+    def test_purchases_detail_with_date_filter(self):
+        response = self.client.get(
+            self.url, {"start_date": "2024-01-01", "end_date": "2024-01-31"}
+        )
+        records = list(response.context["records"])
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0].item_name, "Raw Material X")
+
+    def test_purchases_detail_column_totals(self):
+        response = self.client.get(self.url)
+        totals = response.context["column_totals"]
+        self.assertEqual(totals["total_price"], Decimal("100.00"))
+        self.assertEqual(totals["shipping_cost"], Decimal("8.00"))
+        self.assertEqual(totals["quantity"], 150)
+
+    def test_purchases_detail_no_postcode_column(self):
+        response = self.client.get(self.url)
+        self.assertNotContains(response, "Post Code")
+        self.assertNotContains(response, "N1 9GU")
+
+    def test_purchases_detail_no_postcode_toggle(self):
+        response = self.client.get(self.url)
+        self.assertNotContains(response, "toggle-postcode")
+
+    def test_purchases_detail_sorting(self):
+        response = self.client.get(
+            self.url, {"purchases_sort": "date", "purchases_order": "asc"}
+        )
+        records = list(response.context["records"])
+        self.assertEqual(records[0].item_name, "Raw Material X")
+        self.assertEqual(records[1].item_name, "Raw Material Y")
+
+    def test_purchases_detail_no_results(self):
+        response = self.client.get(
+            self.url, {"start_date": "2025-01-01", "end_date": "2025-12-31"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No purchase records found")
+
+    def test_purchases_detail_page_size(self):
+        response = self.client.get(self.url, {"page_size": "100"})
+        self.assertEqual(response.context["page_size"], 100)
+
+
+class TestDashboardDetailButtons(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.url = reverse("records:dashboard")
+
+    def test_dashboard_has_detail_buttons(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "View Sales Details")
+        self.assertContains(response, "View Purchases Details")
+
+    def test_detail_buttons_open_in_new_tab(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, 'target="_blank"')
+
+    def test_detail_button_urls_without_dates(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.context["sales_detail_url"], "/sales/")
+        self.assertEqual(response.context["purchases_detail_url"], "/purchases/")
+
+    def test_detail_button_urls_with_dates(self):
+        response = self.client.get(
+            self.url, {
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
+                "purchases_start_date": "2024-06-01",
+                "purchases_end_date": "2024-06-30",
+            }
+        )
+        self.assertEqual(
+            response.context["sales_detail_url"],
+            "/sales/?start_date=2024-01-01&end_date=2024-12-31"
+        )
+        self.assertEqual(
+            response.context["purchases_detail_url"],
+            "/purchases/?start_date=2024-06-01&end_date=2024-06-30"
+        )
+
+    def test_sync_dates_copies_sales_to_purchases(self):
+        response = self.client.get(
+            self.url, {
+                "sync_dates": "on",
+                "sales_start_date": "2024-01-01",
+                "sales_end_date": "2024-12-31",
+            }
+        )
+        self.assertEqual(response.context["sales_start_date"], "2024-01-01")
+        self.assertEqual(response.context["purchases_start_date"], "2024-01-01")
+
+    def test_dashboard_no_default_date_filter(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.context["sales_start_date"], "")
+        self.assertEqual(response.context["sales_end_date"], "")
+        self.assertEqual(response.context["purchases_start_date"], "")
+        self.assertEqual(response.context["purchases_end_date"], "")

@@ -255,3 +255,29 @@ th.sorted {
     font-size: 0.85rem;
     color: #666;
 }
+
+.detail-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.detail-button {
+    display: inline-block;
+    padding: 0.6rem 1.5rem;
+    background-color: #3498db;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.detail-button:hover {
+    background-color: #2980b9;
+}
+
+.table-controls {
+    margin-bottom: 1rem;
+}

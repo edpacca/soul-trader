@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load query_helpers %}
+
+{% block title %}Purchase Records{% endblock %}
+
+{% block content %}
+<h1>Purchase Records</h1>
+
+<section class="filter-section">
+    <form method="get" action="{% url 'records:purchases_detail' %}">
+        <div class="filter-row">
+            <label for="start_date">Start Date:</label>
+            <input type="date" id="start_date" name="start_date" value="{{ start_date }}">
+
+            <label for="end_date">End Date:</label>
+            <input type="date" id="end_date" name="end_date" value="{{ end_date }}">
+        </div>
+
+        <input type="hidden" name="purchases_sort" value="{{ sort_field }}">
+        <input type="hidden" name="purchases_order" value="{{ sort_order }}">
+
+        <label for="page_size">Page Size:</label>
+        <select id="page_size" name="page_size">
+            {% for size in allowed_page_sizes %}
+            <option value="{{ size }}" {% if size == page_size %}selected{% endif %}>{{ size }}</option>
+            {% endfor %}
+        </select>
+
+        <div class="filter-actions">
+            <button type="submit">Apply Filters</button>
+            <a href="{% url 'records:purchases_detail' %}" class="clear-filters">Clear All</a>
+        </div>
+    </form>
+</section>
+
+<section class="summary-section">
+    <h2>Summary Totals</h2>
+    <table class="summary-table">
+        <thead>
+            <tr>
+                <th>Total Price</th>
+                <th>Shipping Cost</th>
+                <th>Quantity</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ column_totals.total_price }}</td>
+                <td>{{ column_totals.shipping_cost }}</td>
+                <td>{{ column_totals.quantity }}</td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+
+<section class="data-section">
+    {% if records %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                {% sort_header "purchases" "date" "Date" %}
+                {% sort_header "purchases" "item_name" "Item" %}
+                {% sort_header "purchases" "quantity" "Quantity" %}
+                {% sort_header "purchases" "unit_price" "Unit Price" %}
+                {% sort_header "purchases" "total_price" "Total Price" %}
+                {% sort_header "purchases" "shipping_cost" "Shipping" %}
+                {% sort_header "purchases" "currency" "Currency" %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in records %}
+            <tr>
+                <td>{{ record.date }}</td>
+                <td>{{ record.item_name }}</td>
+                <td>{{ record.quantity }}</td>
+                <td>{{ record.unit_price }}</td>
+                <td>{{ record.total_price }}</td>
+                <td>{{ record.shipping_cost }}</td>
+                <td>{{ record.currency }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% include "records/pagination.html" with page_obj=records page_param="page" %}
+    {% else %}
+    <p>No purchase records found for the selected filters.</p>
+    {% endif %}
+</section>
+{% endblock %}

@@ -8,6 +8,8 @@ from django.db.models import Q, QuerySet, Sum
 
 from apps.records.models import PurchaseRecord, SalesRecord
 
+TOTAL_COLUMNS = ["total_price", "shipping_cost", "quantity"]
+
 SORTABLE_FIELDS = {
     "date",
     "item_name",
@@ -62,8 +64,8 @@ class AggregationService:
 
     @staticmethod
     def get_sales(
-        start_date: date,
-        end_date: date,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
         *,
         item_name: str = "",
         price_min: str = "",
@@ -72,7 +74,11 @@ class AggregationService:
         sort_field: str = "",
         sort_order: str = "asc",
     ) -> QuerySet:
-        qs = SalesRecord.objects.filter(date__gte=start_date, date__lte=end_date)
+        qs = SalesRecord.objects.all()
+        if start_date is not None:
+            qs = qs.filter(date__gte=start_date)
+        if end_date is not None:
+            qs = qs.filter(date__lte=end_date)
         qs = AggregationService._apply_filters(
             qs,
             item_name=item_name,
@@ -85,8 +91,8 @@ class AggregationService:
 
     @staticmethod
     def get_purchases(
-        start_date: date,
-        end_date: date,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
         *,
         item_name: str = "",
         price_min: str = "",
@@ -95,7 +101,11 @@ class AggregationService:
         sort_field: str = "",
         sort_order: str = "asc",
     ) -> QuerySet:
-        qs = PurchaseRecord.objects.filter(date__gte=start_date, date__lte=end_date)
+        qs = PurchaseRecord.objects.all()
+        if start_date is not None:
+            qs = qs.filter(date__gte=start_date)
+        if end_date is not None:
+            qs = qs.filter(date__lte=end_date)
         qs = AggregationService._apply_filters(
             qs,
             item_name=item_name,
@@ -107,9 +117,22 @@ class AggregationService:
         return qs
 
     @staticmethod
+    def get_column_totals(qs: QuerySet) -> dict:
+        agg = qs.aggregate(
+            total_price=Sum("total_price"),
+            shipping_cost=Sum("shipping_cost"),
+            quantity=Sum("quantity"),
+        )
+        return {
+            "total_price": agg["total_price"] or Decimal("0"),
+            "shipping_cost": agg["shipping_cost"] or Decimal("0"),
+            "quantity": agg["quantity"] or 0,
+        }
+
+    @staticmethod
     def get_summary(
-        start_date: date,
-        end_date: date,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
         *,
         sales_filters: Optional[dict] = None,
         purchases_filters: Optional[dict] = None,
