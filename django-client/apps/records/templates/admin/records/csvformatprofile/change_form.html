@@ -1,0 +1,96 @@
+{% extends "admin/change_form.html" %}
+
+{% block after_related_objects %}
+{{ block.super }}
+{% if original %}
+<fieldset class="module">
+  <h2>Test with Sample CSV</h2>
+  <div style="padding: 10px;">
+    <p style="margin-bottom: 10px; color: #666;">
+      Upload a sample CSV file to preview how this profile's mappings will parse the data.
+      The file will not be imported &mdash; this is a dry-run preview only.
+    </p>
+    <form id="test-csv-form" enctype="multipart/form-data" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <input type="file" name="csv_file" id="test-csv-file" accept=".csv,.txt" style="padding: 4px;">
+      <button type="submit" style="padding: 6px 16px; background: #417690; color: #fff; border: none; border-radius: 3px; cursor: pointer;">
+        Test with Sample CSV
+      </button>
+      <span id="test-csv-loading" style="display: none; color: #666;">Processing...</span>
+    </form>
+    <div id="test-csv-results" style="margin-top: 15px;"></div>
+  </div>
+</fieldset>
+
+<script>
+(function() {
+  var form = document.getElementById('test-csv-form');
+  var resultsDiv = document.getElementById('test-csv-results');
+  var loadingSpan = document.getElementById('test-csv-loading');
+
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var fileInput = document.getElementById('test-csv-file');
+    if (!fileInput.files.length) {
+      resultsDiv.innerHTML = '<p style="color: #c00;">Please select a CSV file.</p>';
+      return;
+    }
+
+    var formData = new FormData();
+    formData.append('csv_file', fileInput.files[0]);
+
+    loadingSpan.style.display = 'inline';
+    resultsDiv.innerHTML = '';
+
+    fetch('{% url "admin:records_csvformatprofile_test_csv" original.pk %}', {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+      },
+      body: formData,
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      loadingSpan.style.display = 'none';
+      var html = '';
+      if (data.error) {
+        html = '<p style="color: #c00; padding: 8px; background: #fef0f0; border: 1px solid #f5c6cb; border-radius: 4px;">' + data.error + '</p>';
+      } else {
+        if (data.errors && data.errors.length > 0) {
+          html += '<div style="padding: 8px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; margin-bottom: 10px;">';
+          html += '<strong>Parsing warnings/errors:</strong><ul style="margin: 5px 0 0 20px;">';
+          data.errors.forEach(function(err) {
+            html += '<li>' + err + '</li>';
+          });
+          html += '</ul></div>';
+        }
+        if (data.preview && data.preview.length > 0) {
+          html += '<p style="margin-bottom: 5px;"><strong>Preview (' + data.total_parsed + ' row(s) parsed, showing first ' + data.preview.length + '):</strong></p>';
+          html += '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">';
+          html += '<thead><tr>';
+          data.headers.forEach(function(h) {
+            html += '<th style="padding: 6px 10px; background: #f8f9fa; border: 1px solid #ddd; text-align: left;">' + h + '</th>';
+          });
+          html += '</tr></thead><tbody>';
+          data.preview.forEach(function(row) {
+            html += '<tr>';
+            data.headers.forEach(function(h) {
+              html += '<td style="padding: 4px 10px; border: 1px solid #eee;">' + (row[h] !== undefined ? row[h] : '') + '</td>';
+            });
+            html += '</tr>';
+          });
+          html += '</tbody></table></div>';
+        } else {
+          html += '<p style="color: #666;">No rows were successfully parsed from the sample file.</p>';
+        }
+      }
+      resultsDiv.innerHTML = html;
+    })
+    .catch(function(err) {
+      loadingSpan.style.display = 'none';
+      resultsDiv.innerHTML = '<p style="color: #c00;">An error occurred: ' + err + '</p>';
+    });
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}
