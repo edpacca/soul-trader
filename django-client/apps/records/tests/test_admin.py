@@ -24,6 +24,7 @@ class CSVFormatProfileAdminTestBase(TestCase):
             "3": "unit_price",
             "4": "total_price",
             "5": "post_code",
+            "6": "shipping_cost",
         }
 
     def _create_profile(self, **overrides):
@@ -218,9 +219,9 @@ class TestCSVFormatProfileTestCSVView(CSVFormatProfileAdminTestBase):
     def test_test_csv_valid_file(self):
         profile = self._create_profile()
         csv_content = self._make_csv_content([
-            ["date", "item_name", "quantity", "unit_price", "total_price", "post_code"],
-            ["2024-01-15", "Widget A", "10", "5.00", "50.00", "SW1A 1AA"],
-            ["2024-02-20", "Widget B", "5", "12.00", "60.00", "EC1A 1BB"],
+            ["date", "item_name", "quantity", "unit_price", "total_price", "post_code", "shipping_cost"],
+            ["2024-01-15", "Widget A", "10", "5.00", "50.00", "SW1A 1AA", "3.50"],
+            ["2024-02-20", "Widget B", "5", "12.00", "60.00", "EC1A 1BB", "2.00"],
         ])
         csv_file = io.BytesIO(csv_content)
         csv_file.name = "test.csv"
@@ -237,8 +238,8 @@ class TestCSVFormatProfileTestCSVView(CSVFormatProfileAdminTestBase):
     def test_test_csv_with_parsing_errors(self):
         profile = self._create_profile()
         csv_content = self._make_csv_content([
-            ["date", "item_name", "quantity", "unit_price", "total_price", "post_code"],
-            ["not-a-date", "Widget A", "10", "5.00", "50.00", "SW1A 1AA"],
+            ["date", "item_name", "quantity", "unit_price", "total_price", "post_code", "shipping_cost"],
+            ["not-a-date", "Widget A", "10", "5.00", "50.00", "SW1A 1AA", "3.50"],
         ])
         csv_file = io.BytesIO(csv_content)
         csv_file.name = "test.csv"
@@ -249,7 +250,7 @@ class TestCSVFormatProfileTestCSVView(CSVFormatProfileAdminTestBase):
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content)
         self.assertTrue(len(data["errors"]) > 0)
-        self.assertIn("Invalid date", data["errors"][0])
+        self.assertIn("invalid date format", data["errors"][0])
 
     def test_test_csv_empty_file(self):
         profile = self._create_profile()
@@ -265,9 +266,9 @@ class TestCSVFormatProfileTestCSVView(CSVFormatProfileAdminTestBase):
 
     def test_test_csv_preview_limited_to_10_rows(self):
         profile = self._create_profile()
-        rows = [["date", "item_name", "quantity", "unit_price", "total_price", "post_code"]]
+        rows = [["date", "item_name", "quantity", "unit_price", "total_price", "post_code", "shipping_cost"]]
         for i in range(15):
-            rows.append([f"2024-01-{i+1:02d}", f"Item {i}", "1", "10.00", "10.00", "SW1A"])
+            rows.append([f"2024-01-{i+1:02d}", f"Item {i}", "1", "10.00", "10.00", "SW1A", "1.00"])
         csv_content = self._make_csv_content(rows)
         csv_file = io.BytesIO(csv_content)
         csv_file.name = "test.csv"
@@ -282,7 +283,7 @@ class TestCSVFormatProfileTestCSVView(CSVFormatProfileAdminTestBase):
 
     def test_test_csv_with_semicolon_delimiter(self):
         profile = self._create_profile(delimiter=";")
-        csv_content = "date;item_name;quantity;unit_price;total_price;post_code\n2024-01-15;Widget A;10;5.00;50.00;SW1A 1AA\n"
+        csv_content = "date;item_name;quantity;unit_price;total_price;post_code;shipping_cost\n2024-01-15;Widget A;10;5.00;50.00;SW1A 1AA;3.50\n"
         csv_file = io.BytesIO(csv_content.encode("utf-8"))
         csv_file.name = "test.csv"
         response = self.client.post(

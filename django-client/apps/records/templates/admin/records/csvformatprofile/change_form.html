@@ -10,9 +10,9 @@
       Upload a sample CSV file to preview how this profile's mappings will parse the data.
       The file will not be imported &mdash; this is a dry-run preview only.
     </p>
-    <form id="test-csv-form" enctype="multipart/form-data" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+    <div id="test-csv-form" enctype="multipart/form-data" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
       <input type="file" name="csv_file" id="test-csv-file" accept=".csv,.txt" style="padding: 4px;">
-      <button type="submit" style="padding: 6px 16px; background: #417690; color: #fff; border: none; border-radius: 3px; cursor: pointer;">
+      <button type="button" id="test-csv-btn" style="padding: 6px 16px; background: #417690; color: #fff; border: none; border-radius: 3px; cursor: pointer;">
         Test with Sample CSV
       </button>
       <span id="test-csv-loading" style="display: none; color: #666;">Processing...</span>
@@ -23,12 +23,13 @@
 
 <script>
 (function() {
-  var form = document.getElementById('test-csv-form');
+  var btn = document.getElementById('test-csv-btn');
   var resultsDiv = document.getElementById('test-csv-results');
   var loadingSpan = document.getElementById('test-csv-loading');
 
-  form.addEventListener('submit', function(e) {
+  btn.addEventListener('click', function(e) {
     e.preventDefault();
+    e.stopPropagation();
     var fileInput = document.getElementById('test-csv-file');
     if (!fileInput.files.length) {
       resultsDiv.innerHTML = '<p style="color: #c00;">Please select a CSV file.</p>';
@@ -63,18 +64,19 @@
           });
           html += '</ul></div>';
         }
+        var fields = data.header_fields || data.headers;
         if (data.preview && data.preview.length > 0) {
           html += '<p style="margin-bottom: 5px;"><strong>Preview (' + data.total_parsed + ' row(s) parsed, showing first ' + data.preview.length + '):</strong></p>';
           html += '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">';
           html += '<thead><tr>';
           data.headers.forEach(function(h) {
-            html += '<th style="padding: 6px 10px; background: #f8f9fa; border: 1px solid #ddd; text-align: left;">' + h + '</th>';
+            html += '<th style="padding: 6px 10px; background: #f8f9fa; color: black; border: 1px solid #ddd; text-align: left;">' + h + '</th>';
           });
           html += '</tr></thead><tbody>';
           data.preview.forEach(function(row) {
             html += '<tr>';
-            data.headers.forEach(function(h) {
-              html += '<td style="padding: 4px 10px; border: 1px solid #eee;">' + (row[h] !== undefined ? row[h] : '') + '</td>';
+            fields.forEach(function(f) {
+              html += '<td style="padding: 4px 10px; border: 1px solid #eee;">' + (row[f] !== undefined ? row[f] : '') + '</td>';
             });
             html += '</tr>';
           });
