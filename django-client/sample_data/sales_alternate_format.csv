@@ -1,0 +1,11 @@
+import_id,record_date,product_label,count,price_each,total_value,delivery_fee,category,address_code,payment_currency,source_file,note
+A102,2026-02-16,lantern,1,3.45,3.45,2.20,home,EH3 6LP,GBP,sales_feb.csv,"new stock"
+A103,2026-02-15,bottle,1,5.22,5.22,1.90,kitchen,G1 2FF,GBP,sales_feb.csv,""
+A104,2026-02-14,brick,1,7.88,7.88,2.40,hardware,SW1A 1AA,GBP,import1.csv,"heavy item"
+A105,2026-02-13,rope,1,2.33,2.33,1.70,outdoor,EH1 1BQ,GBP,import1.csv,""
+A106,2026-02-12,apple,1,0.99,0.99,1.50,food,BT1 5GS,GBP,purchases.csv,"seasonal"
+A107,2026-02-11,mirror,1,6.44,6.44,2.55,home,AB11 6FD,GBP,purchases.csv,"fragile"
+A108,2026-02-10,tablet,1,4.67,4.67,2.10,electronics,LE1 4NA,GBP,sales_feb.csv,""
+A109,2026-02-09,helmet,1,8.25,8.25,2.80,sports,EH5 2JL,GBP,sales_feb.csv,"new model"
+A110,2026-02-08,candle,1,2.33,2.33,1.95,home,NE1 8QH,GBP,import1.csv,""
+A111,2026-02-07,chair,1,9.20,9.20,2.85,furniture,BS1 4ST,GBP,purchases.csv,"bulk order"

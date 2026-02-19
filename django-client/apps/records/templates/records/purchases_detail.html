@@ -6,33 +6,6 @@
 {% block content %}
 <h1>Purchase Records</h1>
 
-<section class="filter-section">
-    <form method="get" action="{% url 'records:purchases_detail' %}">
-        <div class="filter-row">
-            <label for="start_date">Start Date:</label>
-            <input type="date" id="start_date" name="start_date" value="{{ start_date }}">
-
-            <label for="end_date">End Date:</label>
-            <input type="date" id="end_date" name="end_date" value="{{ end_date }}">
-        </div>
-
-        <input type="hidden" name="purchases_sort" value="{{ sort_field }}">
-        <input type="hidden" name="purchases_order" value="{{ sort_order }}">
-
-        <label for="page_size">Page Size:</label>
-        <select id="page_size" name="page_size">
-            {% for size in allowed_page_sizes %}
-            <option value="{{ size }}" {% if size == page_size %}selected{% endif %}>{{ size }}</option>
-            {% endfor %}
-        </select>
-
-        <div class="filter-actions">
-            <button type="submit">Apply Filters</button>
-            <a href="{% url 'records:purchases_detail' %}" class="clear-filters">Clear All</a>
-        </div>
-    </form>
-</section>
-
 <section class="summary-section">
     <h2>Summary Totals</h2>
     <table class="summary-table">
@@ -53,7 +26,63 @@
     </table>
 </section>
 
+<section class="filter-section">
+    <form method="get" action="{% url 'records:purchases_detail' %}">
+        <div class="filter-row">
+            <div class="filter-label-input-small">
+                <label for="start_date">Start Date:</label>
+                <input type="date" id="start_date" name="start_date" value="{{ start_date }}">
+            </div>
+
+            <div class="filter-label-input-small">
+                <label for="end_date">End Date:</label>
+                <input type="date" id="end_date" name="end_date" value="{{ end_date }}">
+            </div>
+        </div>
+
+        <div class="filter-row">
+            <div class="filter-label-input-small">
+                <label for="purchases_price_min">Price Min:</label>
+                <input type="number" id="purchases_price_min" name="purchases_price_min" value="{{ filters.price_min }}" step="0.01" min="0" placeholder="0.00">
+            </div>
+
+            <div class="filter-label-input-small">
+                <label for="purchases_price_max">Price Max:</label>
+                <input type="number" id="purchases_price_max" name="purchases_price_max" value="{{ filters.price_max }}" step="0.01" min="0" placeholder="0.00">
+            </div>
+        </div>
+        <div class="filter-label-input-large">
+            <label for="purchases_item_name">Item Name:</label>
+            <input type="text" id="purchases_item_name" name="purchases_item_name" value="{{ filters.item_name }}" placeholder="e.g. Widget, Gadget">
+        </div>
+
+        <div class="filter-label-input-large">
+            <label for="purchases_post_code">Post Code:</label>
+            <input type="text" id="purchases_post_code" name="purchases_post_code" value="{{ filters.post_code }}" placeholder="Contains...">
+        </div>
+
+
+        <div class="filter-label-input-small">
+            <label for="page_size">Page Size:</label>
+            <select id="page_size" name="page_size">
+                {% for size in allowed_page_sizes %}
+                <option value="{{ size }}" {% if size == page_size %}selected{% endif %}>{{ size }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="filter-actions">
+            <button type="submit">Apply Filters</button>
+            <a href="{% url 'records:purchases_detail' %}" class="clear-filters">Clear All</a>
+        </div>
+
+        <input type="hidden" name="purchases_sort" value="{{ sort_field }}">
+        <input type="hidden" name="purchases_order" value="{{ sort_order }}">
+    </form>
+</section>
+
 <section class="data-section">
+    <h2>Purchases</h2>
     {% if records %}
     <table class="data-table">
         <thead>

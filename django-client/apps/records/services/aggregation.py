@@ -124,8 +124,8 @@ class AggregationService:
             quantity=Sum("quantity"),
         )
         return {
-            "total_price": agg["total_price"] or Decimal("0"),
-            "shipping_cost": agg["shipping_cost"] or Decimal("0"),
+            "total_price": round(agg["total_price"] or Decimal("0"), 2),
+            "shipping_cost": round(agg["shipping_cost"] or Decimal("0"), 2),
             "quantity": agg["quantity"] or 0,
         }
 
@@ -142,11 +142,11 @@ class AggregationService:
         sales_qs = AggregationService.get_sales(start_date, end_date, **sf)
         purchases_qs = AggregationService.get_purchases(start_date, end_date, **pf)
 
-        total_sales = (
-            sales_qs.aggregate(total=Sum("total_price"))["total"] or Decimal("0")
+        total_sales = round(
+            sales_qs.aggregate(total=Sum("total_price"))["total"] or Decimal("0"), 2
         )
-        total_purchases = (
-            purchases_qs.aggregate(total=Sum("total_price"))["total"] or Decimal("0")
+        total_purchases = round(
+            purchases_qs.aggregate(total=Sum("total_price"))["total"] or Decimal("0"), 2
         )
         net_profit = total_sales - total_purchases
 

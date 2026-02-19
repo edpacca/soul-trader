@@ -15,80 +15,35 @@
             </label>
         </div>
 
-        <div class="filter-group">
-            <h3>Sales Date Range</h3>
-            <div class="filter-row">
-                <label for="sales_start_date">Start Date:</label>
-                <input type="date" id="sales_start_date" name="sales_start_date" value="{{ sales_start_date }}">
-
-                <label for="sales_end_date">End Date:</label>
-                <input type="date" id="sales_end_date" name="sales_end_date" value="{{ sales_end_date }}">
+        <div class="dashboard-filter-row">
+                <h3>Sales Date Range</h3>
+                <div class="filter-row">
+                    <div class="filter-label-input-small">
+                        <label for="sales_start_date">Start Date:</label>
+                        <input type="date" id="sales_start_date" name="sales_start_date" value="{{ sales_start_date }}">
+                    </div>
+                    <div class="filter-label-input-small">
+                        <label for="sales_end_date">End Date:</label>
+                        <input type="date" id="sales_end_date" name="sales_end_date" value="{{ sales_end_date }}">
+                    </div>
+                </div>
             </div>
-        </div>
-
-        <div class="filter-group">
+            <hr/>
+        <div class="dashboard-filter-row">
             <h3>Purchases Date Range</h3>
             <div class="filter-row">
-                <label for="purchases_start_date">Start Date:</label>
-                <input type="date" id="purchases_start_date" name="purchases_start_date" value="{{ purchases_start_date }}">
+                <div class="filter-label-input-small">
+                    <label for="purchases_start_date">Start Date:</label>
+                    <input type="date" id="purchases_start_date" name="purchases_start_date" value="{{ purchases_start_date }}">
+                </div>
 
-                <label for="purchases_end_date">End Date:</label>
-                <input type="date" id="purchases_end_date" name="purchases_end_date" value="{{ purchases_end_date }}">
+                <div class="filter-label-input-small">
+                    <label for="purchases_end_date">End Date:</label>
+                    <input type="date" id="purchases_end_date" name="purchases_end_date" value="{{ purchases_end_date }}">
+                </div>
             </div>
-        </div>
-
-        <div class="filter-row">
-            <label class="checkbox-label">
-                <input type="checkbox" name="sync_filters" {% if sync_filters %}checked{% endif %}>
-                Apply filters to both tables
-            </label>
-        </div>
-
-        <div class="filter-group">
-            <h3>Sales Filters</h3>
-            <div class="filter-row">
-                <label for="sales_item_name">Item Name:</label>
-                <input type="text" id="sales_item_name" name="sales_item_name" value="{{ sales_filters.item_name }}" placeholder="e.g. Widget, Gadget">
-
-                <label for="sales_price_min">Price Min:</label>
-                <input type="number" id="sales_price_min" name="sales_price_min" value="{{ sales_filters.price_min }}" step="0.01" min="0" placeholder="0.00">
-
-                <label for="sales_price_max">Price Max:</label>
-                <input type="number" id="sales_price_max" name="sales_price_max" value="{{ sales_filters.price_max }}" step="0.01" min="0" placeholder="0.00">
-
-                <label for="sales_post_code">Post Code:</label>
-                <input type="text" id="sales_post_code" name="sales_post_code" value="{{ sales_filters.post_code }}" placeholder="Contains...">
             </div>
-        </div>
 
-        <div class="filter-group">
-            <h3>Purchase Filters</h3>
-            <div class="filter-row">
-                <label for="purchases_item_name">Item Name:</label>
-                <input type="text" id="purchases_item_name" name="purchases_item_name" value="{{ purchases_filters.item_name }}" placeholder="e.g. Widget, Gadget">
-
-                <label for="purchases_price_min">Price Min:</label>
-                <input type="number" id="purchases_price_min" name="purchases_price_min" value="{{ purchases_filters.price_min }}" step="0.01" min="0" placeholder="0.00">
-
-                <label for="purchases_price_max">Price Max:</label>
-                <input type="number" id="purchases_price_max" name="purchases_price_max" value="{{ purchases_filters.price_max }}" step="0.01" min="0" placeholder="0.00">
-
-                <label for="purchases_post_code">Post Code:</label>
-                <input type="text" id="purchases_post_code" name="purchases_post_code" value="{{ purchases_filters.post_code }}" placeholder="Contains...">
-            </div>
-        </div>
-
-        <input type="hidden" name="sales_sort" value="{{ sales_sort }}">
-        <input type="hidden" name="sales_order" value="{{ sales_order }}">
-        <input type="hidden" name="purchases_sort" value="{{ purchases_sort }}">
-        <input type="hidden" name="purchases_order" value="{{ purchases_order }}">
-
-        <label for="page_size">Page Size:</label>
-        <select id="page_size" name="page_size">
-            {% for size in allowed_page_sizes %}
-            <option value="{{ size }}" {% if size == page_size %}selected{% endif %}>{{ size }}</option>
-            {% endfor %}
-        </select>
 
         <div class="filter-actions">
             <button type="submit">Apply Filters</button>
@@ -126,79 +81,5 @@
         <a href="{{ sales_detail_url }}" target="_blank" class="detail-button">View Sales Details</a>
         <a href="{{ purchases_detail_url }}" target="_blank" class="detail-button">View Purchases Details</a>
     </div>
-</section>
-
-<section class="data-section">
-    <h2>Sales Records</h2>
-    {% if sales %}
-    <table class="data-table">
-        <thead>
-            <tr>
-                {% sort_header "sales" "date" "Date" %}
-                {% sort_header "sales" "item_name" "Item" %}
-                {% sort_header "sales" "quantity" "Quantity" %}
-                {% sort_header "sales" "unit_price" "Unit Price" %}
-                {% sort_header "sales" "total_price" "Total Price" %}
-                {% sort_header "sales" "shipping_cost" "Shipping" %}
-                {% sort_header "sales" "post_code" "Post Code" %}
-                {% sort_header "sales" "currency" "Currency" %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for record in sales %}
-            <tr>
-                <td>{{ record.date }}</td>
-                <td>{{ record.item_name }}</td>
-                <td>{{ record.quantity }}</td>
-                <td>{{ record.unit_price }}</td>
-                <td>{{ record.total_price }}</td>
-                <td>{{ record.shipping_cost }}</td>
-                <td>{{ record.post_code }}</td>
-                <td>{{ record.currency }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% include "records/pagination.html" with page_obj=sales page_param="sales_page" %}
-    {% else %}
-    <p>No sales records found for the selected filters.</p>
-    {% endif %}
-</section>
-
-<section class="data-section">
-    <h2>Purchase Records</h2>
-    {% if purchases %}
-    <table class="data-table">
-        <thead>
-            <tr>
-                {% sort_header "purchases" "date" "Date" %}
-                {% sort_header "purchases" "item_name" "Item" %}
-                {% sort_header "purchases" "quantity" "Quantity" %}
-                {% sort_header "purchases" "unit_price" "Unit Price" %}
-                {% sort_header "purchases" "total_price" "Total Price" %}
-                {% sort_header "purchases" "shipping_cost" "Shipping" %}
-                {% sort_header "purchases" "post_code" "Post Code" %}
-                {% sort_header "purchases" "currency" "Currency" %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for record in purchases %}
-            <tr>
-                <td>{{ record.date }}</td>
-                <td>{{ record.item_name }}</td>
-                <td>{{ record.quantity }}</td>
-                <td>{{ record.unit_price }}</td>
-                <td>{{ record.total_price }}</td>
-                <td>{{ record.shipping_cost }}</td>
-                <td>{{ record.post_code }}</td>
-                <td>{{ record.currency }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% include "records/pagination.html" with page_obj=purchases page_param="purchases_page" %}
-    {% else %}
-    <p>No purchase records found for the selected filters.</p>
-    {% endif %}
 </section>
 {% endblock %}

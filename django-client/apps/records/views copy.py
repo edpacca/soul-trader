@@ -74,17 +74,51 @@ def dashboard(request):
             sales_start = purchases_start
             sales_end = purchases_end
 
+    page_size = _parse_page_size(request)
+
+    sync_filters = request.GET.get("sync_filters", "") == "on"
+
+    sales_filters = _extract_filter_params(request, "sales")
+    purchases_filters = _extract_filter_params(request, "purchases")
+
+    if sync_filters:
+        if any(sales_filters.values()) and not any(purchases_filters.values()):
+            purchases_filters = dict(sales_filters)
+        elif any(purchases_filters.values()) and not any(sales_filters.values()):
+            sales_filters = dict(purchases_filters)
+
+    sales_sort = _extract_sort_params(request, "sales")
+    purchases_sort = _extract_sort_params(request, "purchases")
+
+    sales_kwargs = {**sales_filters, **sales_sort}
+    purchases_kwargs = {**purchases_filters, **purchases_sort}
+
     summary = AggregationService.get_summary(
         sales_start,
         sales_end,
+        sales_filters=sales_filters,
+        purchases_filters=purchases_filters,
     )
     summary_purchases = AggregationService.get_summary(
         purchases_start,
         purchases_end,
+        sales_filters=sales_filters,
+        purchases_filters=purchases_filters,
     )
     summary["total_purchases"] = summary_purchases["total_purchases"]
     summary["purchases_count"] = summary_purchases["purchases_count"]
     summary["net_profit"] = summary["total_sales"] - summary["total_purchases"]
+
+    sales_qs = AggregationService.get_sales(sales_start, sales_end, **sales_kwargs)
+    purchases_qs = AggregationService.get_purchases(
+        purchases_start, purchases_end, **purchases_kwargs
+    )
+
+    sales_paginator = Paginator(sales_qs, page_size)
+    purchases_paginator = Paginator(purchases_qs, page_size)
+
+    sales_page = _get_page(sales_paginator, request.GET.get("sales_page"))
+    purchases_page = _get_page(purchases_paginator, request.GET.get("purchases_page"))
 
     sales_detail_params = []
     if sales_start is not None:
@@ -111,6 +145,17 @@ def dashboard(request):
         "purchases_end_date": purchases_end.isoformat() if purchases_end else "",
         "sync_dates": sync_dates,
         "summary": summary,
+        "sales": sales_page,
+        "purchases": purchases_page,
+        "page_size": page_size,
+        "allowed_page_sizes": ALLOWED_PAGE_SIZES,
+        "sync_filters": sync_filters,
+        "sales_filters": sales_filters,
+        "purchases_filters": purchases_filters,
+        "sales_sort": sales_sort["sort_field"],
+        "sales_order": sales_sort["sort_order"],
+        "purchases_sort": purchases_sort["sort_field"],
+        "purchases_order": purchases_sort["sort_order"],
         "sales_detail_url": sales_detail_url,
         "purchases_detail_url": purchases_detail_url,
     }
@@ -123,23 +168,20 @@ def sales_detail(request):
     page_size = _parse_page_size(request)
 
     sort_params = _extract_sort_params(request, "sales")
-    filters = _extract_filter_params(request, "sales")
-    sales_kwargs = {**filters, **sort_params}
 
     qs = AggregationService.get_sales(
-        start_date, end_date, **sales_kwargs
+        start_date, end_date,
+        sort_field=sort_params["sort_field"],
+        sort_order=sort_params["sort_order"],
     )
     column_totals = AggregationService.get_column_totals(qs)
 
     paginator = Paginator(qs, page_size)
     page = _get_page(paginator, request.GET.get("page"))
 
-
-
     context = {
         "start_date": start_date.isoformat() if start_date else "",
         "end_date": end_date.isoformat() if end_date else "",
-        "filters": filters,
         "records": page,
         "column_totals": column_totals,
         "page_size": page_size,
@@ -156,12 +198,11 @@ def purchases_detail(request):
     page_size = _parse_page_size(request)
 
     sort_params = _extract_sort_params(request, "purchases")
-    filters = _extract_filter_params(request, "purchases")
-    purchases_kwargs = {**filters, **sort_params}
 
     qs = AggregationService.get_purchases(
         start_date, end_date,
-        **purchases_kwargs
+        sort_field=sort_params["sort_field"],
+        sort_order=sort_params["sort_order"],
     )
     column_totals = AggregationService.get_column_totals(qs)
 
@@ -171,7 +212,6 @@ def purchases_detail(request):
     context = {
         "start_date": start_date.isoformat() if start_date else "",
         "end_date": end_date.isoformat() if end_date else "",
-        "filters": filters,
         "records": page,
         "column_totals": column_totals,
         "page_size": page_size,

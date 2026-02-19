@@ -1,0 +1,102 @@
+:root {
+  /* Forest (Green) */
+  --mtg-light-green: rgb(196, 211, 202);
+  --mtg-dark-green: rgb(0, 115, 62);
+
+  /* Island (Blue) */
+  --mtg-light-blue: rgb(179, 206, 234);
+  --mtg-dark-blue: rgb(14, 104, 171);
+
+  /* Plains (White) */
+  --mtg-light-white: rgb(248, 231, 185);
+  --mtg-dark-white: rgb(249, 250, 244);
+
+  /* Mountain (Red) */
+  --mtg-light-red: rgb(235, 159, 130);
+  --mtg-dark-red: rgb(211, 32, 42);
+
+  /* Swamp (Black) */
+  --mtg-light-black: rgb(166, 159, 157);
+  --mtg-dark-black: rgb(21, 11, 0);
+
+  --bg0: rgb(21, 11, 0);
+  --bg1: rgb(35, 34, 34);
+  --bg2:  rgb(71, 70, 69);
+  --bg3: rgb(117, 116, 115);
+
+  --text: var(--mtg-dark-white);
+  --subtext: rgb(203, 204, 196);
+
+  --highlight:  var(--mtg-light-white);
+  --highlight-inverse: var(--bg2);
+  --accent: var(--mtg-light-blue);
+  --accent-hover: var(--mtg-dark-blue);
+  --border-color: var(--mtg-dark-white);
+  --warning: rgb(194, 94, 55);
+  --success: #27ae60;
+
+}
+
+.five-bands-light {
+  /* Customize colors here */
+  --c1: var(--mtg-light-white); /* Indigo 800 */
+  --c2: var(--mtg-light-blue); /* Blue 600 */
+  --c3: var(--mtg-light-black); /* Emerald 500 */
+  --c4: var(--mtg-light-red); /* Amber 500 */
+  --c5: var(--mtg-light-green); /* Red 500 */
+
+  /* Size of the soft separator between bands */
+  --gap: 1%;
+
+  background: linear-gradient(
+    to right,
+
+    /* Band 1 */ var(--c1) 0%,
+    var(--c1) calc(20% - var(--gap)),
+    /* Separator 1 */ color-mix(in oklab, var(--c1) 50%, var(--c2) 50%) 20%,
+    var(--c2) calc(20% + var(--gap)),
+    /* Band 2 */ var(--c2) calc(40% - var(--gap)),
+    /* Separator 2 */ color-mix(in oklab, var(--c2) 50%, var(--c3) 50%) 40%,
+    var(--c3) calc(40% + var(--gap)),
+    /* Band 3 */ var(--c3) calc(60% - var(--gap)),
+    /* Separator 3 */ color-mix(in oklab, var(--c3) 50%, var(--c4) 50%) 60%,
+    var(--c4) calc(60% + var(--gap)),
+    /* Band 4 */ var(--c4) calc(80% - var(--gap)),
+    /* Separator 4 */ color-mix(in oklab, var(--c4) 50%, var(--c5) 50%) 80%,
+    var(--c5) calc(80% + var(--gap)),
+    /* Band 5 */ var(--c5) 100%
+  );
+  background-attachment: fixed; /* nice effect if the page scrolls */
+}
+
+.five-bands-dark {
+  /* Customize colors here */
+  --c1: var(--mtg-dark-white); /* Indigo 800 */
+  --c2: var(--mtg-dark-blue); /* Blue 600 */
+  --c3: var(--mtg-dark-black); /* Emerald 500 */
+  --c4: var(--mtg-dark-red); /* Amber 500 */
+  --c5: var(--mtg-dark-green); /* Red 500 */
+
+  /* Size of the soft separator between bands */
+  --gap: 1%;
+
+  background: linear-gradient(
+    to right,
+
+    /* Band 1 */ var(--c1) 0%,
+    var(--c1) calc(20% - var(--gap)),
+    /* Separator 1 */ color-mix(in oklab, var(--c1) 50%, var(--c2) 50%) 20%,
+    var(--c2) calc(20% + var(--gap)),
+    /* Band 2 */ var(--c2) calc(40% - var(--gap)),
+    /* Separator 2 */ color-mix(in oklab, var(--c2) 50%, var(--c3) 50%) 40%,
+    var(--c3) calc(40% + var(--gap)),
+    /* Band 3 */ var(--c3) calc(60% - var(--gap)),
+    /* Separator 3 */ color-mix(in oklab, var(--c3) 50%, var(--c4) 50%) 60%,
+    var(--c4) calc(60% + var(--gap)),
+    /* Band 4 */ var(--c4) calc(80% - var(--gap)),
+    /* Separator 4 */ color-mix(in oklab, var(--c4) 50%, var(--c5) 50%) 80%,
+    var(--c5) calc(80% + var(--gap)),
+    /* Band 5 */ var(--c5) 100%
+  );
+  background-attachment: fixed; /* nice effect if the page scrolls */
+}

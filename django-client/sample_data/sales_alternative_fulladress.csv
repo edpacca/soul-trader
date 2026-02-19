@@ -1,0 +1,11 @@
+import_id;record_date;product_label;count;price_each;total_value;delivery_fee;category;full_address;payment_currency;source_file;note
+B201;2026-02-16;teapot;1;4.55;4.55;2.10;home;"12 Rosebank Terrace; Edinburgh EH10 5BR";GBP;sales_feb.csv;"fragile"
+B202;2026-02-15;marker;1;1.22;1.22;1.40;office;"220 King Street; Aberdeen AB24 5BW";GBP;import1.csv;""
+B203;2026-02-14;mug;1;2.99;2.99;2.35;kitchen;"8 Maple Road; Leeds LS7 3PT";GBP;purchases.csv;"clearance"
+B204;2026-02-13;pliers;1;6.88;6.88;2.55;hardware;"41 Wickham Lane; London SE2 0XZ";GBP;tools_feb.csv;""
+B205;2026-02-12;torch;1;3.77;3.77;1.95;outdoor;"19 Elm Grove; Cardiff CF11 9AR";GBP;sales_feb.csv;"bestseller"
+B206;2026-02-11;ladle;1;1.66;1.66;1.60;kitchen;"5 Wellington Road; Belfast BT7 3GA";GBP;import2.csv;""
+B207;2026-02-10;frame;1;7.55;7.55;2.85;home;"72 Palmerston Place; Edinburgh EH12 5AY";GBP;purchases.csv;"large size"
+B208;2026-02-09;cable;1;2.88;2.88;2.05;electronics;"33 Holbrook Avenue; Bristol BS7 0QQ";GBP;sales_feb.csv;""
+B209;2026-02-08;strap;1;1.44;1.44;1.50;accessories;"14 West End Lane; London NW6 4NT";GBP;accessories.csv;""
+B210;2026-02-07;wood;1;3.33;3.33;2.25;materials;"9 Oakfield Drive; Glasgow G41 3YH";GBP;materials_feb.csv;"bulk cut"

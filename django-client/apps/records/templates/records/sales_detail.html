@@ -6,124 +6,157 @@
 {% block content %}
 <h1>Sales Records</h1>
 
-<section class="filter-section">
-    <form method="get" action="{% url 'records:sales_detail' %}">
-        <div class="filter-row">
-            <label for="start_date">Start Date:</label>
-            <input type="date" id="start_date" name="start_date" value="{{ start_date }}">
-
-            <label for="end_date">End Date:</label>
-            <input type="date" id="end_date" name="end_date" value="{{ end_date }}">
-        </div>
-
-        <input type="hidden" name="sales_sort" value="{{ sort_field }}">
-        <input type="hidden" name="sales_order" value="{{ sort_order }}">
-
-        <label for="page_size">Page Size:</label>
-        <select id="page_size" name="page_size">
-            {% for size in allowed_page_sizes %}
-            <option value="{{ size }}" {% if size == page_size %}selected{% endif %}>{{ size }}</option>
-            {% endfor %}
-        </select>
-
-        <div class="filter-actions">
-            <button type="submit">Apply Filters</button>
-            <a href="{% url 'records:sales_detail' %}" class="clear-filters">Clear All</a>
-        </div>
-    </form>
+<section class="summary-section">
+	<h2>Summary Totals</h2>
+	<table class="summary-table">
+		<thead>
+			<tr>
+				<th>Total Price</th>
+				<th>Shipping Cost</th>
+				<th>Quantity</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>{{ column_totals.total_price }}</td>
+				<td>{{ column_totals.shipping_cost }}</td>
+				<td>{{ column_totals.quantity }}</td>
+			</tr>
+		</tbody>
+	</table>
 </section>
 
-<section class="summary-section">
-    <h2>Summary Totals</h2>
-    <table class="summary-table">
-        <thead>
-            <tr>
-                <th>Total Price</th>
-                <th>Shipping Cost</th>
-                <th>Quantity</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>{{ column_totals.total_price }}</td>
-                <td>{{ column_totals.shipping_cost }}</td>
-                <td>{{ column_totals.quantity }}</td>
-            </tr>
-        </tbody>
-    </table>
+<section class="filter-section">
+	<form method="get" action="{% url 'records:sales_detail' %}">
+		<h3>Filters</h3>
+
+			<div class="filter-row">
+				<div class="filter-label-input-small">
+					<label for="start_date">Start Date:</label>
+					<input type="date" id="start_date" name="start_date" value="{{ start_date }}">
+				</div>
+				<div class="filter-label-input-small">
+					<label for="end_date">End Date:</label>
+					<input type="date" id="end_date" name="end_date" value="{{ end_date }}">
+				</div>
+			</div>
+
+			<div class="filter-row">
+				<div class="filter-label-input-small">
+					<label for="sales_price_min">Price Min:</label>
+					<input type="number" id="sales_price_min" name="sales_price_min" value="{{ filters.price_min }}" step="0.01" min="0" placeholder="0.00">
+				</div>
+
+				<div class="filter-label-input-small">
+					<label for="sales_price_max">Price Max:</label>
+					<input type="number" id="sales_price_max" name="sales_price_max" value="{{ filters.price_max }}" step="0.01" min="0" placeholder="0.00">
+				</div>
+			</div>
+
+			<div>
+				<div class="filter-label-input-large">
+					<label for="sales_item_name">Item Name:</label>
+					<input type="text" id="sales_item_name" name="sales_item_name" value="{{ filters.item_name }}" placeholder="e.g. Plains, Swamp">
+				</div>
+			</div>
+
+
+			<div class="filter-label-input-large">
+				<label for="sales_post_code">Post Code:</label>
+				<input type="text" id="sales_post_code" name="sales_post_code" value="{{ filters.post_code }}" placeholder="Contains...">
+			</div>
+
+			<div class="filter-label-input-small">
+				<label for="page_size">Page Size:</label>
+				<select id="page_size" name="page_size">
+					{% for size in allowed_page_sizes %}
+					<option value="{{ size }}" {% if size == page_size %}selected{% endif %}>{{ size }}</option>
+					{% endfor %}
+				</select>
+			</div>
+			<div class="filter-actions">
+				<button type="submit">Apply Filters</button>
+				<a href="{% url 'records:sales_detail' %}" class="clear-filters">Clear All</a>
+			</div>
+
+
+		<input type="hidden" name="sales_sort" value="{{ sort_field }}">
+		<input type="hidden" name="sales_order" value="{{ sort_order }}">
+
+	</form>
 </section>
 
 <section class="data-section">
-    <div class="table-controls">
-        <label class="checkbox-label">
-            <input type="checkbox" id="toggle-postcode" checked>
-            Show Post Code column
-        </label>
-    </div>
-
-    {% if records %}
-    <table class="data-table" id="sales-table">
-        <thead>
-            <tr>
-                {% sort_header "sales" "date" "Date" %}
-                {% sort_header "sales" "item_name" "Item" %}
-                {% sort_header "sales" "quantity" "Quantity" %}
-                {% sort_header "sales" "unit_price" "Unit Price" %}
-                {% sort_header "sales" "total_price" "Total Price" %}
-                {% sort_header "sales" "shipping_cost" "Shipping" %}
-                {% sort_header "sales" "post_code" "Post Code" %}
-                {% sort_header "sales" "currency" "Currency" %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for record in records %}
-            <tr>
-                <td>{{ record.date }}</td>
-                <td>{{ record.item_name }}</td>
-                <td>{{ record.quantity }}</td>
-                <td>{{ record.unit_price }}</td>
-                <td>{{ record.total_price }}</td>
-                <td>{{ record.shipping_cost }}</td>
-                <td class="postcode-cell">{{ record.post_code }}</td>
-                <td>{{ record.currency }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% include "records/pagination.html" with page_obj=records page_param="page" %}
-    {% else %}
-    <p>No sales records found for the selected filters.</p>
-    {% endif %}
+	<div class="table-controls">
+		<h2>Sales</h2>
+		<label class="checkbox-label">
+			<input type="checkbox" id="toggle-postcode" checked>
+			Show Post Code column
+		</label>
+	</div>
+	{% if records %}
+	<table class="data-table" id="sales-table">
+		<thead>
+			<tr>
+				{% sort_header "sales" "date" "Date" %}
+				{% sort_header "sales" "item_name" "Item" %}
+				{% sort_header "sales" "quantity" "Quantity" %}
+				{% sort_header "sales" "unit_price" "Unit Price" %}
+				{% sort_header "sales" "total_price" "Total Price" %}
+				{% sort_header "sales" "shipping_cost" "Shipping" %}
+				{% sort_header "sales" "post_code" "Post Code" %}
+				{% sort_header "sales" "currency" "Currency" %}
+			</tr>
+		</thead>
+		<tbody>
+			{% for record in records %}
+			<tr>
+				<td>{{ record.date }}</td>
+				<td>{{ record.item_name }}</td>
+				<td>{{ record.quantity }}</td>
+				<td>{{ record.unit_price }}</td>
+				<td>{{ record.total_price }}</td>
+				<td>{{ record.shipping_cost }}</td>
+				<td class="postcode-cell">{{ record.post_code }}</td>
+				<td>{{ record.currency }}</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+	{% include "records/pagination.html" with page_obj=records page_param="page" %}
+	{% else %}
+	<p>No sales records found for the selected filters.</p>
+	{% endif %}
 </section>
 
 <script>
 (function() {
-    var checkbox = document.getElementById('toggle-postcode');
-    var table = document.getElementById('sales-table');
-    function togglePostcode() {
-        if (!table) return;
-        var headers = table.querySelectorAll('thead th');
-        var colIndex = -1;
-        for (var i = 0; i < headers.length; i++) {
-            if (headers[i].textContent.trim().indexOf('Post Code') !== -1) {
-                colIndex = i;
-                break;
-            }
-        }
-        if (colIndex === -1) return;
-        var display = checkbox.checked ? '' : 'none';
-        headers[colIndex].style.display = display;
-        var rows = table.querySelectorAll('tbody tr');
-        for (var r = 0; r < rows.length; r++) {
-            var cells = rows[r].querySelectorAll('td');
-            if (cells[colIndex]) {
-                cells[colIndex].style.display = display;
-            }
-        }
-    }
-    if (checkbox) {
-        checkbox.addEventListener('change', togglePostcode);
-    }
+	var checkbox = document.getElementById('toggle-postcode');
+	var table = document.getElementById('sales-table');
+	function togglePostcode() {
+		if (!table) return;
+		var headers = table.querySelectorAll('thead th');
+		var colIndex = -1;
+		for (var i = 0; i < headers.length; i++) {
+			if (headers[i].textContent.trim().indexOf('Post Code') !== -1) {
+				colIndex = i;
+				break;
+			}
+		}
+		if (colIndex === -1) return;
+		var display = checkbox.checked ? '' : 'none';
+		headers[colIndex].style.display = display;
+		var rows = table.querySelectorAll('tbody tr');
+		for (var r = 0; r < rows.length; r++) {
+			var cells = rows[r].querySelectorAll('td');
+			if (cells[colIndex]) {
+				cells[colIndex].style.display = display;
+			}
+		}
+	}
+	if (checkbox) {
+		checkbox.addEventListener('change', togglePostcode);
+	}
 })();
 </script>
 {% endblock %}
