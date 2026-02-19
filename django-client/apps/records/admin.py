@@ -89,7 +89,10 @@ class CSVUploadAdmin(admin.ModelAdmin):
             self._process_csv(request, obj)
 
     def _process_csv(self, request, obj):
-        parser = DefaultCSVParser()
+        if obj.format_profile:
+            parser = DefaultCSVParser(profile=obj.format_profile)
+        else:
+            parser = DefaultCSVParser()
 
         try:
             file_content = obj.file.read().decode("utf-8-sig")
