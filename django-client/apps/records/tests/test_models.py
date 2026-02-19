@@ -1,7 +1,9 @@
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 
-from apps.records.models import CSVFormatProfile
+from apps.records.models import CSVFormatProfile, CSVUpload
 
 
 class TestCSVFormatProfileModel(TestCase):
@@ -166,3 +168,164 @@ class TestCSVFormatProfileModel(TestCase):
             profile.full_clean()
         self.assertIn("field_mappings", ctx.exception.message_dict)
         self.assertIn("header_name", str(ctx.exception.message_dict["field_mappings"]))
+
+
+class TestCSVUploadFormatProfile(TestCase):
+    def _valid_mappings(self):
+        return {
+            "0": "date",
+            "1": "item_name",
+            "2": "quantity",
+            "3": "unit_price",
+            "4": "total_price",
+            "5": "post_code",
+        }
+
+    def _create_profile(self, record_type="sales", is_active=True, name="Test Profile"):
+        return CSVFormatProfile.objects.create(
+            name=name,
+            record_type=record_type,
+            delimiter=",",
+            date_format="%Y-%m-%d",
+            field_mappings=self._valid_mappings(),
+            is_active=is_active,
+        )
+
+    def test_format_profile_nullable(self):
+        upload = CSVUpload.objects.create(
+            file="csv_uploads/test.csv",
+            record_type="sales",
+        )
+        self.assertIsNone(upload.format_profile)
+
+    def test_format_profile_assignment(self):
+        profile = self._create_profile()
+        upload = CSVUpload.objects.create(
+            file="csv_uploads/test.csv",
+            record_type="sales",
+            format_profile=profile,
+        )
+        upload.refresh_from_db()
+        self.assertEqual(upload.format_profile, profile)
+
+    def test_format_profile_set_null_on_delete(self):
+        profile = self._create_profile()
+        upload = CSVUpload.objects.create(
+            file="csv_uploads/test.csv",
+            record_type="sales",
+            format_profile=profile,
+        )
+        profile.delete()
+        upload.refresh_from_db()
+        self.assertIsNone(upload.format_profile)
+
+    def test_format_profile_reverse_relation(self):
+        profile = self._create_profile()
+        CSVUpload.objects.create(
+            file="csv_uploads/test1.csv",
+            record_type="sales",
+            format_profile=profile,
+        )
+        CSVUpload.objects.create(
+            file="csv_uploads/test2.csv",
+            record_type="sales",
+            format_profile=profile,
+        )
+        self.assertEqual(profile.csv_uploads.count(), 2)
+
+
+class TestCSVUploadAdminForm(TestCase):
+    def setUp(self):
+        self.admin_user = User.objects.create_superuser(
+            username="admin", password="password", email="admin@test.com"
+        )
+        self.client.login(username="admin", password="password")
+        self.valid_mappings = {
+            "0": "date",
+            "1": "item_name",
+            "2": "quantity",
+            "3": "unit_price",
+            "4": "total_price",
+            "5": "post_code",
+        }
+
+    def _create_profile(self, record_type="sales", is_active=True, name="Test Profile"):
+        return CSVFormatProfile.objects.create(
+            name=name,
+            record_type=record_type,
+            delimiter=",",
+            date_format="%Y-%m-%d",
+            field_mappings=self.valid_mappings,
+            is_active=is_active,
+        )
+
+    def test_admin_add_requires_format_profile(self):
+        csv_content = b"2024-01-01,Widget,10,5.00,50.00,AB1 2CD"
+        upload_file = SimpleUploadedFile("test.csv", csv_content, content_type="text/csv")
+        response = self.client.post(
+            "/admin/records/csvupload/add/",
+            {
+                "file": upload_file,
+                "record_type": "sales",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "A format profile is required for new uploads.")
+        self.assertEqual(CSVUpload.objects.count(), 0)
+
+    def test_admin_add_with_profile_succeeds(self):
+        profile = self._create_profile()
+        csv_content = b"2024-01-01,Widget,10,5.00,50.00,AB1 2CD"
+        upload_file = SimpleUploadedFile("test.csv", csv_content, content_type="text/csv")
+        response = self.client.post(
+            "/admin/records/csvupload/add/",
+            {
+                "file": upload_file,
+                "record_type": "sales",
+                "format_profile": profile.pk,
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(CSVUpload.objects.count(), 1)
+
+    def test_admin_rejects_mismatched_profile_record_type(self):
+        profile = self._create_profile(record_type="purchase")
+        csv_content = b"2024-01-01,Widget,10,5.00,50.00,AB1 2CD"
+        upload_file = SimpleUploadedFile("test.csv", csv_content, content_type="text/csv")
+        response = self.client.post(
+            "/admin/records/csvupload/add/",
+            {
+                "file": upload_file,
+                "record_type": "sales",
+                "format_profile": profile.pk,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "does not match the chosen record type")
+        self.assertEqual(CSVUpload.objects.count(), 0)
+
+    def test_admin_edit_existing_upload_without_profile_allowed(self):
+        upload = CSVUpload.objects.create(
+            file="csv_uploads/test.csv",
+            record_type="sales",
+        )
+        response = self.client.post(
+            f"/admin/records/csvupload/{upload.pk}/change/",
+            {
+                "file": upload.file,
+                "record_type": "sales",
+                "format_profile": "",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+
+    def test_admin_dropdown_excludes_inactive_profiles(self):
+        self._create_profile(name="Active Profile", is_active=True)
+        self._create_profile(name="Inactive Profile", is_active=False)
+        response = self.client.get("/admin/records/csvupload/add/")
+        self.assertContains(response, "Active Profile")
+        self.assertNotContains(response, "Inactive Profile")
+
+    def test_admin_change_form_contains_profile_map(self):
+        response = self.client.get("/admin/records/csvupload/add/")
+        self.assertContains(response, "profile-record-type-map")

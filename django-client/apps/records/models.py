@@ -41,6 +41,13 @@ class CSVUpload(models.Model):
 
     file = models.FileField(upload_to="csv_uploads/")
     record_type = models.CharField(max_length=10, choices=RECORD_TYPE_CHOICES)
+    format_profile = models.ForeignKey(
+        "CSVFormatProfile",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="csv_uploads",
+    )
     uploaded_at = models.DateTimeField(auto_now_add=True)
     rows_imported = models.PositiveIntegerField(default=0)
     errors = models.TextField(blank=True, default="")

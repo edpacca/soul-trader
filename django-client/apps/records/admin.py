@@ -4,7 +4,9 @@ import json
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
+from django import forms
 from django.contrib import admin, messages
+from django.utils.safestring import mark_safe
 from django.http import JsonResponse
 from django.urls import path
 
@@ -30,11 +32,55 @@ class PurchaseRecordAdmin(BaseRecordAdmin):
     pass
 
 
+class CSVUploadForm(forms.ModelForm):
+    class Meta:
+        model = CSVUpload
+        fields = "__all__"
+
+    def clean_format_profile(self):
+        profile = self.cleaned_data.get("format_profile")
+        if not self.instance.pk and not profile:
+            raise forms.ValidationError("A format profile is required for new uploads.")
+        return profile
+
+    def clean(self):
+        cleaned_data = super().clean()
+        record_type = cleaned_data.get("record_type")
+        profile = cleaned_data.get("format_profile")
+        if profile and record_type and profile.record_type != record_type:
+            raise forms.ValidationError(
+                "The selected format profile does not match the chosen record type."
+            )
+        return cleaned_data
+
+
 @admin.register(CSVUpload)
 class CSVUploadAdmin(admin.ModelAdmin):
-    list_display = ("record_type", "uploaded_at", "rows_imported", "file")
+    form = CSVUploadForm
+    list_display = ("record_type", "format_profile", "uploaded_at", "rows_imported", "file")
     list_filter = ("record_type",)
     readonly_fields = ("uploaded_at", "rows_imported", "errors")
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "format_profile":
+            kwargs["queryset"] = CSVFormatProfile.objects.filter(is_active=True)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+    def _get_profile_record_type_map(self):
+        profiles = CSVFormatProfile.objects.filter(is_active=True).values_list(
+            "id", "record_type"
+        )
+        return {str(pk): rt for pk, rt in profiles}
+
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        extra_context = extra_context or {}
+        extra_context["profile_record_type_map"] = mark_safe(
+            json.dumps(self._get_profile_record_type_map())
+        )
+        return super().changeform_view(request, object_id, form_url, extra_context)
+
+    class Media:
+        js = ("admin/js/csv_upload_filter.js",)
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
