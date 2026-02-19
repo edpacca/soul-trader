@@ -1,6 +1,6 @@
 from django.contrib import admin, messages
 
-from .models import CSVUpload, PurchaseRecord, SalesRecord
+from .models import CSVFormatProfile, CSVUpload, PurchaseRecord, SalesRecord
 from .services.csv_parser import DefaultCSVParser
 
 
@@ -68,3 +68,11 @@ class CSVUploadAdmin(admin.ModelAdmin):
                 f"Successfully imported {created} {obj.record_type} records.",
                 messages.SUCCESS,
             )
+
+
+@admin.register(CSVFormatProfile)
+class CSVFormatProfileAdmin(admin.ModelAdmin):
+    list_display = ("name", "record_type", "delimiter", "is_active", "created_at", "updated_at")
+    list_filter = ("record_type", "is_active")
+    search_fields = ("name",)
+    readonly_fields = ("created_at", "updated_at")
