@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 
-from apps.records.models import CSVFormatProfile, CSVUpload
+from apps.records.models import CSVFormatProfile, CSVUpload, SalesRecord
 
 
 class TestCSVFormatProfileModel(TestCase):
@@ -329,3 +329,56 @@ class TestCSVUploadAdminForm(TestCase):
     def test_admin_change_form_contains_profile_map(self):
         response = self.client.get("/admin/records/csvupload/add/")
         self.assertContains(response, "profile-record-type-map")
+
+
+class TestCSVUploadNewFields(TestCase):
+    """Tests for the imported_record_ids and file_hash fields on CSVUpload."""
+
+    def test_imported_record_ids_default_empty_list(self):
+        upload = CSVUpload.objects.create(
+            file="csv_uploads/test.csv",
+            record_type="sales",
+        )
+        self.assertEqual(upload.imported_record_ids, [])
+
+    def test_imported_record_ids_stores_integers(self):
+        upload = CSVUpload.objects.create(
+            file="csv_uploads/test.csv",
+            record_type="sales",
+            imported_record_ids=[1, 2, 3],
+        )
+        upload.refresh_from_db()
+        self.assertEqual(upload.imported_record_ids, [1, 2, 3])
+
+    def test_imported_record_ids_stores_strings(self):
+        """Should work with UUID-like string IDs too."""
+        upload = CSVUpload.objects.create(
+            file="csv_uploads/test.csv",
+            record_type="sales",
+            imported_record_ids=["abc-123", "def-456"],
+        )
+        upload.refresh_from_db()
+        self.assertEqual(upload.imported_record_ids, ["abc-123", "def-456"])
+
+    def test_file_hash_default_blank(self):
+        upload = CSVUpload.objects.create(
+            file="csv_uploads/test.csv",
+            record_type="sales",
+        )
+        self.assertEqual(upload.file_hash, "")
+
+    def test_file_hash_stores_64_char_hex(self):
+        hash_value = "a" * 64
+        upload = CSVUpload.objects.create(
+            file="csv_uploads/test.csv",
+            record_type="sales",
+            file_hash=hash_value,
+        )
+        upload.refresh_from_db()
+        self.assertEqual(upload.file_hash, hash_value)
+        self.assertEqual(len(upload.file_hash), 64)
+
+    def test_file_hash_is_indexed(self):
+        """file_hash field should have db_index=True."""
+        field = CSVUpload._meta.get_field("file_hash")
+        self.assertTrue(field.db_index)

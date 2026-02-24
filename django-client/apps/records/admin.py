@@ -1,4 +1,5 @@
 import csv
+import hashlib
 import io
 import json
 
@@ -36,6 +37,12 @@ class PurchaseRecordAdmin(BaseRecordAdmin):
 
 
 class CSVUploadForm(forms.ModelForm):
+    confirm_duplicate = forms.BooleanField(
+        required=False,
+        label="Confirm duplicate upload",
+        help_text="Check this box to proceed if this file has already been uploaded.",
+    )
+
     class Meta:
         model = CSVUpload
         fields = "__all__"
@@ -75,7 +82,8 @@ class CSVUploadAdmin(admin.ModelAdmin):
     form = CSVUploadForm
     list_display = ("record_type", "format_profile", "source", "uploaded_at", "rows_imported", "file")
     list_filter = ("record_type", "source")
-    readonly_fields = ("uploaded_at", "rows_imported", "errors")
+    readonly_fields = ("uploaded_at", "rows_imported", "errors", "imported_record_ids", "file_hash")
+    actions = ['delete_imported_records']
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "format_profile":
@@ -109,9 +117,23 @@ class CSVUploadAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
         if not change:
-            self._process_csv(request, obj)
+            self._process_csv(request, obj, form)
 
-    def _process_csv(self, request, obj):
+    @admin.action(description="Delete all records from selected CSV uploads")
+    def delete_imported_records(self, request, queryset):
+        total_deleted = 0
+        uploads_deleted = 0
+        for upload in queryset:
+            if upload.imported_record_ids:
+                model_class = SalesRecord if upload.record_type == "sales" else PurchaseRecord
+                deleted_count, _ = model_class.objects.filter(id__in=upload.imported_record_ids).delete()
+                total_deleted += deleted_count
+            upload.file.delete(save=False)
+            upload.delete()
+            uploads_deleted += 1
+        self.message_user(request, f"Deleted {total_deleted} records and {uploads_deleted} upload(s).", messages.SUCCESS)
+
+    def _process_csv(self, request, obj, form):
         if obj.format_profile:
             parser = DefaultCSVParser(profile=obj.format_profile)
         else:
@@ -120,22 +142,50 @@ class CSVUploadAdmin(admin.ModelAdmin):
         try:
             file_content = obj.file.read().decode("utf-8-sig")
         except UnicodeDecodeError:
-            obj.errors = "File encoding error. Please upload a UTF-8 encoded CSV."
-            obj.save()
-            self.message_user(request, obj.errors, messages.ERROR)
+            self.message_user(request, "File encoding error. Please upload a UTF-8 encoded CSV.", messages.ERROR)
+            obj.delete()
+            return
+
+        file_hash = hashlib.sha256(file_content.encode()).hexdigest()
+
+        # Check for duplicate uploads
+        existing = CSVUpload.objects.filter(
+            file_hash=file_hash,
+            record_type=obj.record_type
+        ).exclude(pk=obj.pk).first()
+
+        if existing and not form.cleaned_data.get("confirm_duplicate"):
+            self.message_user(
+                request,
+                f"This file appears to be a duplicate of an upload from {existing.uploaded_at}. "
+                f"To proceed, re-upload with the 'Confirm duplicate upload' checkbox checked.",
+                messages.ERROR,
+            )
+            obj.file.delete(save=False)
+            obj.delete()
             return
 
         records, errors = parser.parse(file_content)
 
         model_class = SalesRecord if obj.record_type == "sales" else PurchaseRecord
+        created_ids = []
         created = 0
         for record_data in records:
             if obj.source:
                 record_data['source'] = obj.source
-            model_class.objects.create(**record_data)
+            record = model_class.objects.create(**record_data)
+            created_ids.append(record.id)
             created += 1
 
+        if created == 0:
+            error_msg = "\n".join(errors) if errors else "No records could be imported."
+            self.message_user(request, f"Upload failed: {error_msg}", messages.ERROR)
+            obj.delete()
+            return
+
         obj.rows_imported = created
+        obj.imported_record_ids = created_ids
+        obj.file_hash = file_hash
         obj.errors = "\n".join(errors) if errors else ""
         obj.save()
 
