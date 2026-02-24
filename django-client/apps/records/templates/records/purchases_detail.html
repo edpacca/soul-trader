@@ -103,6 +103,7 @@
                 {% sort_header "purchases" "shipping_cost" "Shipping" %}
                 {% sort_header "purchases" "source" "Source" %}
                 {% sort_header "purchases" "currency" "Currency" %}
+                <th>Notes</th>
             </tr>
         </thead>
         <tbody>
@@ -122,6 +123,9 @@
                     {% endif %}
                 </td>
                 <td>{{ record.currency }}</td>
+                <td class="notes-cell">
+                    <button class="notes-button" data-record-id="{{ record.id }}" data-record-type="purchases" data-note="{{ record.notes }}">{% if record.notes %}&#x1f4dd;{% else %}+{% endif %}</button>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
@@ -132,6 +136,8 @@
     {% endif %}
 </section>
 
+{% include "records/notes_modal.html" %}
+{% include "records/notes_js.html" %}
 
 <script>
 	(function () {

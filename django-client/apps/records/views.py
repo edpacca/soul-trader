@@ -1,8 +1,11 @@
 from datetime import date
 
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.shortcuts import render
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, render
+from django.views.decorators.http import require_http_methods, require_POST
 
+from .models import PurchaseRecord, SalesRecord
 from .services.aggregation import AggregationService
 
 ALLOWED_PAGE_SIZES = [25, 50, 100]
@@ -134,8 +137,6 @@ def sales_detail(request):
     paginator = Paginator(qs, page_size)
     page = _get_page(paginator, request.GET.get("page"))
 
-
-
     context = {
         "start_date": start_date.isoformat() if start_date else "",
         "end_date": end_date.isoformat() if end_date else "",
@@ -180,3 +181,76 @@ def purchases_detail(request):
         "sort_order": sort_params["sort_order"],
     }
     return render(request, "records/purchases_detail.html", context)
+
+
+@require_POST
+def update_sales_note(request, record_id):
+    record = get_object_or_404(SalesRecord, pk=record_id)
+    record.notes = request.POST.get("notes", "")[:255]
+    record.save(update_fields=["notes"])
+    return JsonResponse({"id": record.id, "notes": record.notes})
+
+
+@require_http_methods(["DELETE"])
+def delete_sales_note(request, record_id):
+    record = get_object_or_404(SalesRecord, pk=record_id)
+    record.notes = ""
+    record.save(update_fields=["notes"])
+    return JsonResponse({"id": record.id, "notes": ""})
+
+
+@require_POST
+def update_purchase_note(request, record_id):
+    record = get_object_or_404(PurchaseRecord, pk=record_id)
+    record.notes = request.POST.get("notes", "")[:255]
+    record.save(update_fields=["notes"])
+    return JsonResponse({"id": record.id, "notes": record.notes})
+
+
+@require_http_methods(["DELETE"])
+def delete_purchase_note(request, record_id):
+    record = get_object_or_404(PurchaseRecord, pk=record_id)
+    record.notes = ""
+    record.save(update_fields=["notes"])
+    return JsonResponse({"id": record.id, "notes": ""})
+
+
+def notes_list(request):
+    record_type = request.GET.get("type", "")
+
+    sales_notes = []
+    purchase_notes = []
+
+    if record_type != "purchases":
+        for r in SalesRecord.objects.exclude(notes=""):
+            sales_notes.append({
+                "id": r.id,
+                "item_name": r.item_name,
+                "date": r.date,
+                "notes": r.notes,
+                "record_type": "Sales",
+                "record_type_key": "sales",
+            })
+
+    if record_type != "sales":
+        for r in PurchaseRecord.objects.exclude(notes=""):
+            purchase_notes.append({
+                "id": r.id,
+                "item_name": r.item_name,
+                "date": r.date,
+                "notes": r.notes,
+                "record_type": "Purchase",
+                "record_type_key": "purchases",
+            })
+
+    all_notes = sorted(
+        sales_notes + purchase_notes,
+        key=lambda x: x["date"],
+        reverse=True,
+    )
+
+    context = {
+        "notes": all_notes,
+        "current_type": record_type,
+    }
+    return render(request, "records/notes_list.html", context)

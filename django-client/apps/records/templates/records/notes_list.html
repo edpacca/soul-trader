@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Notes{% endblock %}
+
+{% block content %}
+<h1>Notes</h1>
+
+<section class="filter-section">
+    <div class="filter-actions">
+        <a href="{% url 'records:notes_list' %}" class="{% if not current_type %}detail-button{% else %}clear-filters{% endif %}">All</a>
+        <a href="{% url 'records:notes_list' %}?type=sales" class="{% if current_type == 'sales' %}detail-button{% else %}clear-filters{% endif %}">Sales</a>
+        <a href="{% url 'records:notes_list' %}?type=purchases" class="{% if current_type == 'purchases' %}detail-button{% else %}clear-filters{% endif %}">Purchases</a>
+    </div>
+</section>
+
+<section class="data-section">
+    {% if notes %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Item Name</th>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Note</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for note in notes %}
+            <tr>
+                <td>{{ note.id }}</td>
+                <td>{{ note.item_name }}</td>
+                <td>{{ note.date }}</td>
+                <td>{{ note.record_type }}</td>
+                <td>{{ note.notes }}</td>
+                <td class="notes-cell">
+                    <button class="notes-button" data-record-id="{{ note.id }}" data-record-type="{{ note.record_type_key }}" data-note="{{ note.notes }}">&#x1f4dd;</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No notes found.</p>
+    {% endif %}
+</section>
+
+{% include "records/notes_modal.html" %}
+{% include "records/notes_js.html" %}
+{% endblock %}

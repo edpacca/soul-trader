@@ -20,11 +20,10 @@ class SourceAdmin(admin.ModelAdmin):
 
 
 class BaseRecordAdmin(admin.ModelAdmin):
-    list_display = ("date", "item_name", "quantity", "unit_price", "total_price", "shipping_cost", "post_code", "currency", "source")
-    list_filter = ("date", "currency", "source")
-    search_fields = ("item_name", "post_code")
+    list_display = ("date", "item_name", "quantity", "unit_price", "total_price", "shipping_cost", "source", "post_code", "currency", "notes")
+    list_filter = ("date", "currency")
+    search_fields = ("item_name", "source", "post_code", "notes")
     readonly_fields = ("created_at",)
-
 
 @admin.register(SalesRecord)
 class SalesRecordAdmin(BaseRecordAdmin):
