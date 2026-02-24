@@ -78,6 +78,8 @@ class CSVUpload(models.Model):
     )
     uploaded_at = models.DateTimeField(auto_now_add=True)
     rows_imported = models.PositiveIntegerField(default=0)
+    imported_record_ids = models.JSONField(default=list, blank=True)
+    file_hash = models.CharField(max_length=64, blank=True, db_index=True)
     errors = models.TextField(blank=True, default="")
 
     class Meta:
