@@ -41,4 +41,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
     recordTypeSelect.addEventListener("change", filterProfiles);
     filterProfiles();
+
+    var sourceSelect = document.getElementById("id_source");
+    if (sourceSelect) {
+        var sourceMapEl = document.getElementById("profile-source-map");
+        if (sourceMapEl) {
+            var profileSourceMap = JSON.parse(sourceMapEl.textContent);
+
+            profileSelect.addEventListener("change", function() {
+                var profileId = profileSelect.value;
+                if (profileId && profileSourceMap[profileId]) {
+                    sourceSelect.value = profileSourceMap[profileId];
+                }
+            });
+        }
+    }
 });

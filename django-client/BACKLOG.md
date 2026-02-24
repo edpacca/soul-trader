@@ -123,10 +123,10 @@ _Configurable CSV formats + wizard-based import flow._
 
 **Acceptance Criteria**
 
-- [ ]  Define profiles for either sales or purchases (the internal models are different)
-- [ ]  Define profiles with: delimiter, header→field mappings, date format
-- [ ]  Validation ensures required internal fields are mapped
-- [ ]  Profiles stored in the database
+- [x]  Define profiles for either sales or purchases (the internal models are different)
+- [x]  Define profiles with: delimiter, header→field mappings, date format
+- [x]  Validation ensures required internal fields are mapped
+- [x]  Profiles stored in the database
 
 ---
 
@@ -138,8 +138,8 @@ _Configurable CSV formats + wizard-based import flow._
 
 **Acceptance Criteria**
 
-- [ ] admin can select the format from a dropdown
-- [ ] format comes from database of CSV format profiles
+- [x] admin can select the format from a dropdown
+- [x] format comes from database of CSV format profiles
 
 ---
 

@@ -2,6 +2,19 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 
+class Source(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = "Source"
+        verbose_name_plural = "Sources"
+
+    def __str__(self):
+        return self.name
+
+
 class BaseRecord(models.Model):
     date = models.DateField()
     item_name = models.CharField(max_length=255)
@@ -11,6 +24,13 @@ class BaseRecord(models.Model):
     shipping_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     post_code = models.CharField(max_length=20)
     currency = models.CharField(max_length=3, blank=True, default="GBP")
+    source = models.ForeignKey(
+        'Source',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='%(class)s_records'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -48,6 +68,13 @@ class CSVUpload(models.Model):
         on_delete=models.SET_NULL,
         related_name="csv_uploads",
     )
+    source = models.ForeignKey(
+        'Source',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='csv_uploads'
+    )
     uploaded_at = models.DateTimeField(auto_now_add=True)
     rows_imported = models.PositiveIntegerField(default=0)
     errors = models.TextField(blank=True, default="")
@@ -79,6 +106,14 @@ class CSVFormatProfile(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    source = models.ForeignKey(
+        'Source',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='format_profiles',
+        help_text='Default source for uploads using this profile'
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -91,7 +126,7 @@ class CSVFormatProfile(models.Model):
 
     def _get_model_fields(self):
         model_class = SalesRecord if self.record_type == "sales" else PurchaseRecord
-        excluded = {"id", "created_at"}
+        excluded = {"id", "created_at", "source"}
         return {
             f.name
             for f in model_class._meta.get_fields()
@@ -100,7 +135,7 @@ class CSVFormatProfile(models.Model):
 
     def _get_required_fields(self):
         model_class = SalesRecord if self.record_type == "sales" else PurchaseRecord
-        excluded = {"id", "created_at"}
+        excluded = {"id", "created_at", "source"}
         required = set()
         for f in model_class._meta.get_fields():
             if not hasattr(f, "column") or f.name in excluded:

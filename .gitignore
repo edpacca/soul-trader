@@ -45,3 +45,6 @@ artifacts/
 .env
 .env.local
 .env.*.local
+client/
+server/
+simulators/

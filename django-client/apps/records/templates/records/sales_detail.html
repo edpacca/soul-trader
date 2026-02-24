@@ -30,54 +30,54 @@
 	<form method="get" action="{% url 'records:sales_detail' %}">
 		<h3>Filters</h3>
 
-			<div class="filter-row">
-				<div class="filter-label-input-small">
-					<label for="start_date">Start Date:</label>
-					<input type="date" id="start_date" name="start_date" value="{{ start_date }}">
-				</div>
-				<div class="filter-label-input-small">
-					<label for="end_date">End Date:</label>
-					<input type="date" id="end_date" name="end_date" value="{{ end_date }}">
-				</div>
+		<div class="filter-row">
+			<div class="filter-label-input-small">
+				<label for="start_date">Start Date:</label>
+				<input type="date" id="start_date" name="start_date" value="{{ start_date }}">
 			</div>
-
-			<div class="filter-row">
-				<div class="filter-label-input-small">
-					<label for="sales_price_min">Price Min:</label>
-					<input type="number" id="sales_price_min" name="sales_price_min" value="{{ filters.price_min }}" step="0.01" min="0" placeholder="0.00">
-				</div>
-
-				<div class="filter-label-input-small">
-					<label for="sales_price_max">Price Max:</label>
-					<input type="number" id="sales_price_max" name="sales_price_max" value="{{ filters.price_max }}" step="0.01" min="0" placeholder="0.00">
-				</div>
+			<div class="filter-label-input-small">
+				<label for="end_date">End Date:</label>
+				<input type="date" id="end_date" name="end_date" value="{{ end_date }}">
 			</div>
+		</div>
 
-			<div>
-				<div class="filter-label-input-large">
-					<label for="sales_item_name">Item Name:</label>
-					<input type="text" id="sales_item_name" name="sales_item_name" value="{{ filters.item_name }}" placeholder="e.g. Plains, Swamp">
-				</div>
-			</div>
-
-
-			<div class="filter-label-input-large">
-				<label for="sales_post_code">Post Code:</label>
-				<input type="text" id="sales_post_code" name="sales_post_code" value="{{ filters.post_code }}" placeholder="Contains...">
+		<div class="filter-row">
+			<div class="filter-label-input-small">
+				<label for="sales_price_min">Price Min:</label>
+				<input type="number" id="sales_price_min" name="sales_price_min" value="{{ filters.price_min }}"
+					step="0.01" min="0" placeholder="0.00">
 			</div>
 
 			<div class="filter-label-input-small">
-				<label for="page_size">Page Size:</label>
-				<select id="page_size" name="page_size">
-					{% for size in allowed_page_sizes %}
-					<option value="{{ size }}" {% if size == page_size %}selected{% endif %}>{{ size }}</option>
-					{% endfor %}
-				</select>
+				<label for="sales_price_max">Price Max:</label>
+				<input type="number" id="sales_price_max" name="sales_price_max" value="{{ filters.price_max }}"
+					step="0.01" min="0" placeholder="0.00">
 			</div>
-			<div class="filter-actions">
-				<button type="submit">Apply Filters</button>
-				<a href="{% url 'records:sales_detail' %}" class="clear-filters">Clear All</a>
+		</div>
+
+		<div>
+			<div class="filter-label-input-large">
+				<label for="sales_item_name">Item Name:</label>
+				<input type="text" id="sales_item_name" name="sales_item_name" value="{{ filters.item_name }}"
+					placeholder="e.g. Plains, Swamp">
 			</div>
+		</div>
+
+
+		<div class="filter-label-input-large">
+			<label for="sales_post_code">Post Code:</label>
+			<input type="text" id="sales_post_code" name="sales_post_code" value="{{ filters.post_code }}"
+				placeholder="Contains...">
+		</div>
+
+		<div class="filter-label-input-small">
+			<label for="page_size">Page Size:</label>
+
+		</div>
+		<div class="filter-actions">
+			<button type="submit">Apply Filters</button>
+			<a href="{% url 'records:sales_detail' %}" class="clear-filters">Clear All</a>
+		</div>
 
 
 		<input type="hidden" name="sales_sort" value="{{ sort_field }}">
@@ -89,14 +89,21 @@
 <section class="data-section">
 	<div class="table-controls">
 		<h2>Sales</h2>
-		<label class="checkbox-label">
-			<input type="checkbox" id="toggle-postcode" checked>
-			Show Post Code column
-		</label>
+		<div>
+			<label class="checkbox-label">
+				<input type="checkbox" id="toggle-post_code" checked>
+				Show Post Code
+			</label>
+			<label class="checkbox-label">
+				<input type="checkbox" id="toggle-currency" checked>
+				Show Currency
+			</label>
+		</div>
 	</div>
 	{% if records %}
 	<table class="data-table" id="sales-table">
 		<thead>
+
 			<tr>
 				{% sort_header "sales" "date" "Date" %}
 				{% sort_header "sales" "item_name" "Item" %}
@@ -104,6 +111,7 @@
 				{% sort_header "sales" "unit_price" "Unit Price" %}
 				{% sort_header "sales" "total_price" "Total Price" %}
 				{% sort_header "sales" "shipping_cost" "Shipping" %}
+				{% sort_header "sales" "source" "Source" %}
 				{% sort_header "sales" "post_code" "Post Code" %}
 				{% sort_header "sales" "currency" "Currency" %}
 			</tr>
@@ -117,8 +125,15 @@
 				<td>{{ record.unit_price }}</td>
 				<td>{{ record.total_price }}</td>
 				<td>{{ record.shipping_cost }}</td>
+                <td>
+                    {% if record.source %}
+                        {{ record.source }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
 				<td class="postcode-cell">{{ record.post_code }}</td>
-				<td>{{ record.currency }}</td>
+				<td class="currency-cell">{{ record.currency }}</td>
 			</tr>
 			{% endfor %}
 		</tbody>
@@ -130,33 +145,40 @@
 </section>
 
 <script>
-(function() {
-	var checkbox = document.getElementById('toggle-postcode');
-	var table = document.getElementById('sales-table');
-	function togglePostcode() {
-		if (!table) return;
-		var headers = table.querySelectorAll('thead th');
-		var colIndex = -1;
-		for (var i = 0; i < headers.length; i++) {
-			if (headers[i].textContent.trim().indexOf('Post Code') !== -1) {
-				colIndex = i;
-				break;
+	(function () {
+		function toggleColumnVisibility(field, header) {
+			var checkbox = document.getElementById(`toggle-${field}`);
+			var table = document.getElementById('sales-table');
+			function toggleVisibility() {
+				if (!table) return;
+				var headers = table.querySelectorAll('thead th');
+				var colIndex = -1;
+				for (var i = 0; i < headers.length; i++) {
+					if (headers[i].textContent.trim().indexOf(header) !== -1) {
+						colIndex = i;
+						break;
+					}
+				}
+				if (colIndex === -1) return;
+				var display = checkbox.checked ? '' : 'none';
+				headers[colIndex].style.display = display;
+				var rows = table.querySelectorAll('tbody tr');
+				for (var r = 0; r < rows.length; r++) {
+					var cells = rows[r].querySelectorAll('td');
+					if (cells[colIndex]) {
+						cells[colIndex].style.display = display;
+					}
+				}
+			}
+			if (checkbox) {
+				checkbox.addEventListener('change', toggleVisibility);
+				checkbox.checked = false;
+				toggleVisibility();
 			}
 		}
-		if (colIndex === -1) return;
-		var display = checkbox.checked ? '' : 'none';
-		headers[colIndex].style.display = display;
-		var rows = table.querySelectorAll('tbody tr');
-		for (var r = 0; r < rows.length; r++) {
-			var cells = rows[r].querySelectorAll('td');
-			if (cells[colIndex]) {
-				cells[colIndex].style.display = display;
-			}
-		}
-	}
-	if (checkbox) {
-		checkbox.addEventListener('change', togglePostcode);
-	}
-})();
+
+		toggleColumnVisibility("post_code", "Post Code");
+		toggleColumnVisibility("currency", "Currency");
+	})();
 </script>
 {% endblock %}
