@@ -7,7 +7,7 @@ from .models import CSVFormatProfile, SalesRecord, PurchaseRecord
 
 def get_model_fields_info(record_type):
     model_class = SalesRecord if record_type == "sales" else PurchaseRecord
-    excluded = {"id", "created_at"}
+    excluded = {"id", "created_at", "source"}
     fields = []
     for f in model_class._meta.get_fields():
         if not hasattr(f, "column") or f.name in excluded:

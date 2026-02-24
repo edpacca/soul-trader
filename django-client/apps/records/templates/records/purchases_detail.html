@@ -82,9 +82,17 @@
 </section>
 
 <section class="data-section">
-    <h2>Purchases</h2>
+	<div class="table-controls">
+		<h2>Purchases</h2>
+		<div>
+			<label class="checkbox-label">
+				<input type="checkbox" id="toggle-currency" checked>
+				Show Currency
+			</label>
+		</div>
+	</div>
     {% if records %}
-    <table class="data-table">
+    <table class="data-table" id="purchases-table">
         <thead>
             <tr>
                 {% sort_header "purchases" "date" "Date" %}
@@ -93,6 +101,7 @@
                 {% sort_header "purchases" "unit_price" "Unit Price" %}
                 {% sort_header "purchases" "total_price" "Total Price" %}
                 {% sort_header "purchases" "shipping_cost" "Shipping" %}
+                {% sort_header "purchases" "source" "Source" %}
                 {% sort_header "purchases" "currency" "Currency" %}
             </tr>
         </thead>
@@ -105,6 +114,13 @@
                 <td>{{ record.unit_price }}</td>
                 <td>{{ record.total_price }}</td>
                 <td>{{ record.shipping_cost }}</td>
+                <td>
+                    {% if record.source %}
+                        {{ record.source }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
                 <td>{{ record.currency }}</td>
             </tr>
             {% endfor %}
@@ -115,4 +131,42 @@
     <p>No purchase records found for the selected filters.</p>
     {% endif %}
 </section>
+
+
+<script>
+	(function () {
+		function toggleColumnVisibility(field, header) {
+			var checkbox = document.getElementById(`toggle-${field}`);
+			var table = document.getElementById('purchases-table');
+			function toggleVisibility() {
+				if (!table) return;
+				var headers = table.querySelectorAll('thead th');
+				var colIndex = -1;
+				for (var i = 0; i < headers.length; i++) {
+					if (headers[i].textContent.trim().indexOf(header) !== -1) {
+						colIndex = i;
+						break;
+					}
+				}
+				if (colIndex === -1) return;
+				var display = checkbox.checked ? '' : 'none';
+				headers[colIndex].style.display = display;
+				var rows = table.querySelectorAll('tbody tr');
+				for (var r = 0; r < rows.length; r++) {
+					var cells = rows[r].querySelectorAll('td');
+					if (cells[colIndex]) {
+						cells[colIndex].style.display = display;
+					}
+				}
+			}
+			if (checkbox) {
+				checkbox.addEventListener('change', toggleVisibility);
+				checkbox.checked = false;
+				toggleVisibility();
+			}
+		}
+
+		toggleColumnVisibility("currency", "Currency");
+	})();
+</script>
 {% endblock %}

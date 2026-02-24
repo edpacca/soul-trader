@@ -9,13 +9,19 @@ from django.http import JsonResponse
 from django.urls import path
 
 from .forms import CSVFormatProfileForm
-from .models import CSVFormatProfile, CSVUpload, PurchaseRecord, SalesRecord
+from .models import CSVFormatProfile, CSVUpload, PurchaseRecord, SalesRecord, Source
 from .services.csv_parser import DefaultCSVParser
 
 
+@admin.register(Source)
+class SourceAdmin(admin.ModelAdmin):
+    list_display = ('name', 'created_at')
+    search_fields = ('name',)
+
+
 class BaseRecordAdmin(admin.ModelAdmin):
-    list_display = ("date", "item_name", "quantity", "unit_price", "total_price", "shipping_cost", "post_code", "currency")
-    list_filter = ("date", "currency")
+    list_display = ("date", "item_name", "quantity", "unit_price", "total_price", "shipping_cost", "post_code", "currency", "source")
+    list_filter = ("date", "currency", "source")
     search_fields = ("item_name", "post_code")
     readonly_fields = ("created_at",)
 
@@ -34,6 +40,19 @@ class CSVUploadForm(forms.ModelForm):
     class Meta:
         model = CSVUpload
         fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Auto-populate source from format profile if not set
+        if not self.instance.pk and 'format_profile' in self.data:
+            profile_id = self.data.get('format_profile')
+            if profile_id:
+                try:
+                    profile = CSVFormatProfile.objects.get(pk=profile_id)
+                    if profile.source and not self.data.get('source'):
+                        self.initial['source'] = profile.source
+                except CSVFormatProfile.DoesNotExist:
+                    pass
 
     def clean_format_profile(self):
         profile = self.cleaned_data.get("format_profile")
@@ -55,8 +74,8 @@ class CSVUploadForm(forms.ModelForm):
 @admin.register(CSVUpload)
 class CSVUploadAdmin(admin.ModelAdmin):
     form = CSVUploadForm
-    list_display = ("record_type", "format_profile", "uploaded_at", "rows_imported", "file")
-    list_filter = ("record_type",)
+    list_display = ("record_type", "format_profile", "source", "uploaded_at", "rows_imported", "file")
+    list_filter = ("record_type", "source")
     readonly_fields = ("uploaded_at", "rows_imported", "errors")
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
@@ -70,10 +89,17 @@ class CSVUploadAdmin(admin.ModelAdmin):
         )
         return {str(pk): rt for pk, rt in profiles}
 
+    def _get_profile_source_map(self):
+        profiles = CSVFormatProfile.objects.filter(is_active=True, source__isnull=False)
+        return {str(p.id): str(p.source.id) for p in profiles}
+
     def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
         extra_context = extra_context or {}
         extra_context["profile_record_type_map"] = mark_safe(
             json.dumps(self._get_profile_record_type_map())
+        )
+        extra_context["profile_source_map"] = mark_safe(
+            json.dumps(self._get_profile_source_map())
         )
         return super().changeform_view(request, object_id, form_url, extra_context)
 
@@ -105,6 +131,8 @@ class CSVUploadAdmin(admin.ModelAdmin):
         model_class = SalesRecord if obj.record_type == "sales" else PurchaseRecord
         created = 0
         for record_data in records:
+            if obj.source:
+                record_data['source'] = obj.source
             model_class.objects.create(**record_data)
             created += 1
 
@@ -129,8 +157,8 @@ class CSVUploadAdmin(admin.ModelAdmin):
 @admin.register(CSVFormatProfile)
 class CSVFormatProfileAdmin(admin.ModelAdmin):
     form = CSVFormatProfileForm
-    list_display = ("name", "record_type", "delimiter", "is_active", "created_at", "updated_at")
-    list_filter = ("record_type", "is_active")
+    list_display = ("name", "record_type", "source", "delimiter", "is_active", "created_at", "updated_at")
+    list_filter = ("record_type", "is_active", "source")
     search_fields = ("name",)
     readonly_fields = ("created_at", "updated_at")
     change_form_template = "admin/records/csvformatprofile/change_form.html"
