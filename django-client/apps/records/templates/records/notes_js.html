@@ -1,0 +1,121 @@
+<script>
+(function() {
+    var modal = document.getElementById('notes-modal');
+    var noteText = document.getElementById('note-text');
+    var charCount = document.getElementById('note-char-count');
+    var saveBtn = document.getElementById('save-note-btn');
+    var deleteBtn = document.getElementById('delete-note-btn');
+    var cancelBtn = document.getElementById('cancel-note-btn');
+    var currentRecordId = null;
+    var currentRecordType = null;
+    var currentButton = null;
+
+    function getCsrfToken() {
+        var cookie = document.cookie.split(';').find(function(c) {
+            return c.trim().startsWith('csrftoken=');
+        });
+        if (cookie) return cookie.split('=')[1];
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        if (meta) return meta.getAttribute('content');
+        var input = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        if (input) return input.value;
+        return '';
+    }
+
+    function updateCharCount() {
+        if (charCount && noteText) {
+            charCount.textContent = noteText.value.length + ' / 255';
+        }
+    }
+
+    function openModal(button) {
+        currentRecordId = button.getAttribute('data-record-id');
+        currentRecordType = button.getAttribute('data-record-type');
+        currentButton = button;
+        noteText.value = button.getAttribute('data-note') || '';
+        updateCharCount();
+        modal.style.display = 'flex';
+        noteText.focus();
+    }
+
+    function closeModal() {
+        modal.style.display = 'none';
+        currentRecordId = null;
+        currentRecordType = null;
+        currentButton = null;
+    }
+
+    function saveNote() {
+        if (!currentRecordId || !currentRecordType) return;
+        var url = '/' + currentRecordType + '/' + currentRecordId + '/note/';
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', url, true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                var data = JSON.parse(xhr.responseText);
+                if (currentButton) {
+                    currentButton.setAttribute('data-note', data.notes);
+                    currentButton.innerHTML = data.notes ? '&#x1f4dd;' : '+';
+                }
+                closeModal();
+            } else {
+                alert('Error saving note. Please try again.');
+            }
+        };
+        xhr.onerror = function() {
+            alert('Network error. Please try again.');
+        };
+        xhr.send('notes=' + encodeURIComponent(noteText.value));
+    }
+
+    function deleteNote() {
+        if (!currentRecordId || !currentRecordType) return;
+        var url = '/' + currentRecordType + '/' + currentRecordId + '/note/delete/';
+        var xhr = new XMLHttpRequest();
+        xhr.open('DELETE', url, true);
+        xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                if (currentButton) {
+                    currentButton.setAttribute('data-note', '');
+                    currentButton.innerHTML = '+';
+                }
+                closeModal();
+            } else {
+                alert('Error deleting note. Please try again.');
+            }
+        };
+        xhr.onerror = function() {
+            alert('Network error. Please try again.');
+        };
+        xhr.send();
+    }
+
+    document.addEventListener('click', function(e) {
+        var button = e.target.closest('.notes-button');
+        if (button) {
+            e.preventDefault();
+            openModal(button);
+        }
+    });
+
+    if (noteText) noteText.addEventListener('input', updateCharCount);
+    if (saveBtn) saveBtn.addEventListener('click', saveNote);
+    if (deleteBtn) deleteBtn.addEventListener('click', deleteNote);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) closeModal();
+        });
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal && modal.style.display !== 'none') {
+            closeModal();
+        }
+    });
+})();
+</script>

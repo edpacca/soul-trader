@@ -72,7 +72,11 @@
 
 		<div class="filter-label-input-small">
 			<label for="page_size">Page Size:</label>
-
+			<select id="page_size" name="page_size">
+				{% for size in allowed_page_sizes %}
+					<option value="{{ size }}" {% if size == page_size %}selected{% endif %}>{{ size }}</option>
+				{% endfor %}
+			</select>
 		</div>
 		<div class="filter-actions">
 			<button type="submit">Apply Filters</button>
@@ -114,6 +118,7 @@
 				{% sort_header "sales" "source" "Source" %}
 				{% sort_header "sales" "post_code" "Post Code" %}
 				{% sort_header "sales" "currency" "Currency" %}
+				<th>Notes</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -125,15 +130,19 @@
 				<td>{{ record.unit_price }}</td>
 				<td>{{ record.total_price }}</td>
 				<td>{{ record.shipping_cost }}</td>
-                <td>
-                    {% if record.source %}
-                        {{ record.source }}
-                    {% else %}
-                        -
-                    {% endif %}
-                </td>
+				<td>
+					{% if record.source %}
+					{{ record.source }}
+					{% else %}
+					-
+					{% endif %}
+				</td>
 				<td class="postcode-cell">{{ record.post_code }}</td>
-				<td class="currency-cell">{{ record.currency }}</td>
+				<td>{{ record.currency }}</td>
+				<td class="notes-cell">
+					<button class="notes-button" data-record-id="{{ record.id }}" data-record-type="sales"
+						data-note="{{ record.notes }}">{% if record.notes %}&#x1f4dd;{% else %}+{% endif %}</button>
+				</td>
 			</tr>
 			{% endfor %}
 		</tbody>
@@ -143,6 +152,8 @@
 	<p>No sales records found for the selected filters.</p>
 	{% endif %}
 </section>
+
+{% include "records/notes_modal.html" %}
 
 <script>
 	(function () {
@@ -181,4 +192,6 @@
 		toggleColumnVisibility("currency", "Currency");
 	})();
 </script>
+
+{% include "records/notes_js.html" %}
 {% endblock %}

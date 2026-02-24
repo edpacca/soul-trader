@@ -31,6 +31,7 @@ class AggregationService:
         price_min: str = "",
         price_max: str = "",
         post_code: str = "",
+        notes: str = "",
     ) -> QuerySet:
         if item_name:
             terms = [t.strip() for t in item_name.split(",") if t.strip()]
@@ -49,6 +50,8 @@ class AggregationService:
                 pass
         if post_code:
             qs = qs.filter(post_code__icontains=post_code)
+        if notes:
+            qs = qs.filter(notes__icontains=notes)
         return qs
 
     @staticmethod
@@ -71,6 +74,7 @@ class AggregationService:
         price_min: str = "",
         price_max: str = "",
         post_code: str = "",
+        notes: str = "",
         sort_field: str = "",
         sort_order: str = "asc",
     ) -> QuerySet:
@@ -85,6 +89,7 @@ class AggregationService:
             price_min=price_min,
             price_max=price_max,
             post_code=post_code,
+            notes=notes,
         )
         qs = AggregationService._apply_sort(qs, sort_field, sort_order)
         return qs
@@ -98,6 +103,7 @@ class AggregationService:
         price_min: str = "",
         price_max: str = "",
         post_code: str = "",
+        notes: str = "",
         sort_field: str = "",
         sort_order: str = "asc",
     ) -> QuerySet:
@@ -112,6 +118,7 @@ class AggregationService:
             price_min=price_min,
             price_max=price_max,
             post_code=post_code,
+            notes=notes,
         )
         qs = AggregationService._apply_sort(qs, sort_field, sort_order)
         return qs
