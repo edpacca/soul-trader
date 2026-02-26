@@ -48,3 +48,20 @@ def sort_header(context, prefix, field, label):
         f"</th>"
     )
     return mark_safe(html)
+
+@register.filter
+def get_attr(obj, attr):
+    """Dynamically access a named attribute on a model instance."""
+    return getattr(obj, attr, "")
+
+@register.filter
+def get_item(dict, key):
+    return dict.get(key)
+
+@register.filter
+def get_min(dict, key):
+    return get_item(dict, f"{key}_min")
+
+@register.filter
+def get_max(dict, key):
+    return get_item(dict, f"{key}_max")

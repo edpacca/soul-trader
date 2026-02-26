@@ -57,7 +57,7 @@
                 var data = JSON.parse(xhr.responseText);
                 if (currentButton) {
                     currentButton.setAttribute('data-note', data.notes);
-                    currentButton.innerHTML = data.notes ? '&#x1f4dd;' : '+';
+                    currentButton.setAttribute('class', 'notes-button has-note' )
                 }
                 closeModal();
             } else {
@@ -80,7 +80,7 @@
             if (xhr.status === 200) {
                 if (currentButton) {
                     currentButton.setAttribute('data-note', '');
-                    currentButton.innerHTML = '+';
+                    currentButton.setAttribute('class', 'notes-button' )
                 }
                 closeModal();
             } else {

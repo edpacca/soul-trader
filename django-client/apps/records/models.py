@@ -7,7 +7,7 @@ class Source(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['name']
+        ordering = ["name"]
         verbose_name = "Source"
         verbose_name_plural = "Sources"
 
@@ -21,16 +21,16 @@ class BaseRecord(models.Model):
     quantity = models.PositiveIntegerField()
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
     total_price = models.DecimalField(max_digits=12, decimal_places=2)
-    shipping_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    shipping_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=False)
     post_code = models.CharField(max_length=20)
     currency = models.CharField(max_length=3, blank=True, default="GBP")
     notes = models.CharField(max_length=255, blank=True, default="")
     source = models.ForeignKey(
-        'Source',
+        "Source",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        related_name='%(class)s_records'
+        related_name="%(class)s_records",
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -70,11 +70,11 @@ class CSVUpload(models.Model):
         related_name="csv_uploads",
     )
     source = models.ForeignKey(
-        'Source',
+        "Source",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        related_name='csv_uploads'
+        related_name="csv_uploads",
     )
     uploaded_at = models.DateTimeField(auto_now_add=True)
     rows_imported = models.PositiveIntegerField(default=0)
@@ -110,14 +110,18 @@ class CSVFormatProfile(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     source = models.ForeignKey(
-        'Source',
+        "Source",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        related_name='format_profiles',
-        help_text='Default source for uploads using this profile'
+        related_name="format_profiles",
+        help_text="Default source for uploads using this profile",
     )
     is_active = models.BooleanField(default=True)
+    has_headers = models.BooleanField(
+        default=True,
+        help_text="Whether the CSV file includes a header row as the first row.",
+    )
 
     class Meta:
         ordering = ["name"]
