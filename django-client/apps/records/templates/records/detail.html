@@ -36,6 +36,33 @@
                            value="{{ start_date }}">
                     <input type="date" id="end_date" name="end_date" value="{{ end_date }}">
                 </div>
+                <div class="filter-label-input-small">
+                    <label for="month_year_month" class="r-align">Month:</label>
+                    <select id="month_year_month">
+                        <option value="">--</option>
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
+                <div class="filter-label-input-small">
+                    <label for="month_year_year" class="r-align">Year:</label>
+                    <input type="number"
+                           id="month_year_year"
+                           min="{{ year_min }}"
+                           max="{{ year_max }}"
+                           value="{{ current_year }}"
+                           step="1">
+                </div>
             </div>
             {% for column in columns %}
                 {% if column.filter == "num_range" %}
@@ -92,10 +119,10 @@
             <div>
                 {% for column in columns %}
                     {% if column.has_toggle %}
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="toggle-{{ column.field }}" checked>
-                        {{ column.label }}
-                    </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="toggle-{{ column.field }}" checked>
+                            {{ column.label }}
+                        </label>
                     {% endif %}
                 {% endfor %}
             </div>
@@ -179,5 +206,35 @@
             </script>
         {% endif %}
     {% endfor %}
+    <script>
+    (function () {
+        var monthSelect = document.getElementById('month_year_month');
+        var yearInput = document.getElementById('month_year_year');
+        var startInput = document.getElementById('start_date');
+        var endInput = document.getElementById('end_date');
+
+        function applyMonthYear() {
+            var month = parseInt(monthSelect.value, 10);
+            var year = parseInt(yearInput.value, 10);
+            if (!month || !year) return;
+
+            // First day of month
+            var first = new Date(year, month - 1, 1);
+            // Last day of month
+            var last = new Date(year, month, 0);
+
+            function pad(n) { return n < 10 ? '0' + n : '' + n; }
+            function fmt(d) {
+                return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+            }
+
+            startInput.value = fmt(first);
+            endInput.value = fmt(last);
+        }
+
+        if (monthSelect) monthSelect.addEventListener('change', applyMonthYear);
+        if (yearInput) yearInput.addEventListener('change', applyMonthYear);
+    })();
+    </script>
     {% include "records/notes_js.html" %}
 {% endblock content %}

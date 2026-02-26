@@ -79,6 +79,16 @@ def _parse_date(value, default=None):
         return default
 
 
+def _build_year_range():
+    """Return the min and max years that have records, for the year spinner."""
+    today = date.today()
+    return {
+        "year_min": 2015,
+        "year_max": today.year,
+        "current_year": today.year,
+    }
+
+
 def _parse_page_size(request):
     try:
         page_size = int(request.GET.get("page_size", DEFAULT_PAGE_SIZE))
@@ -188,6 +198,7 @@ def sales_detail(request):
         "filter_prefix": "sales",
         "table_id": "sales-table",
         "columns": SALES_COLUMNS,
+        **_build_year_range(),
     }
     return render(request, "records/detail.html", context)
 
@@ -228,6 +239,7 @@ def purchases_detail(request):
         "filter_prefix": "purchases",
         "table_id": "purchases-table",
         "columns": PURCHASES_COLUMNS,
+        **_build_year_range(),
     }
     return render(request, "records/detail.html", context)
 
