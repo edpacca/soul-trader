@@ -209,7 +209,7 @@ def purchases_detail(request):
     page_size = _parse_page_size(request)
 
     sort_params = _extract_sort_params(request, "purchases")
-    col_filters = _parse_filter_names(SALES_COLUMNS)
+    col_filters = _parse_filter_names(PURCHASES_COLUMNS)
     filters = _extract_filter_params(request, col_filters)
     purchases_kwargs = {**filters, **sort_params}
 

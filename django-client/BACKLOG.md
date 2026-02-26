@@ -1,9 +1,9 @@
 ## ✅ Epics Overview
 
 - [ ]  **Backup & Recovery**
-- [ ]  **Advanced Table Tools**
-- [ ]  **Flexible CSV Import System**
-- [ ]  **Record Enhancements**
+- [x]  **Advanced Table Tools**
+- [x]  **Flexible CSV Import System**
+- [x]  **Record Enhancements**
 - [ ]  **Reporting & PDF Generation**
 - [ ]  **Usability & Deployment**
 
@@ -95,20 +95,6 @@ _Sorting, filtering, pagination, and global search to support large datasets._
 
 ---
 
-### Story: Global Search
-
-**As a** user
-**I want** a global search box
-**So that** I can quickly find matching records
-
-**Acceptance Criteria**
-
-- [ ]  Full-text search across item name, notes, postcode, currency
-- [ ]  Search narrows results in the current view
-- [ ]  Works alongside filters, sorting, and pagination
-
----
-
 # Epic: Flexible CSV Import System
 
 _Configurable CSV formats + wizard-based import flow._
@@ -149,20 +135,6 @@ _Unique IDs, notes field, and inline editing support._
 
 ---
 
-### Story: Add Unique IDs to Records
-
-**As a** developer
-**I want** each record to have a unique identifier
-**So that** I can reference entries reliably
-
-**Acceptance Criteria**
-
-- [ ]  Add UUID primary key (or ensure stable unique ID)
-- [ ]  Migration safely updates existing data
-- [ ]  ID shown in UI (compact styling)
-
----
-
 ### Story: Add Notes to Entries
 
 **As a** user
@@ -171,22 +143,9 @@ _Unique IDs, notes field, and inline editing support._
 
 **Acceptance Criteria**
 
-- [ ]  Notes field added to model
-- [ ]  UI to edit notes inline or via modal
-- [ ]  Notes included in search/filtering
-
----
-
-### Story: Inline Editing (Selected Fields)
-
-**As a** user
-**I want** to edit certain fields inline
-**So that** I can correct small errors quickly
-
-**Acceptance Criteria**
-
-- [ ]  Editable fields: notes, item name, date
-- [ ]  Optional: change history/audit trail retained
+- [x]  Notes field added to model
+- [x]  UI to edit notes inline or via modal
+- [x]  Notes included in search/filtering
 
 ---
 
@@ -221,20 +180,6 @@ _PDF exports, report presets, scheduled reports._
 - [ ]  Define preset name, time window (e.g., last 30 days, this month), and included fields
 - [ ]  Presets saved to DB and listed in UI
 - [ ]  One-click run generates report using current data
-
----
-
-### Story: Scheduled Report Emails
-
-**As a** user
-**I want** reports emailed automatically
-**So that** I don’t have to remember to generate them
-
-**Acceptance Criteria**
-
-- [ ]  Scheduled job (cron/Celery beat) generates PDFs using presets
-- [ ]  Emails PDF to configured address(es)
-- [ ]  Visible status/history of last scheduled run
 
 ---
 
