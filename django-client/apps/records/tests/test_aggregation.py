@@ -70,7 +70,7 @@ class TestAggregationService(TestCase):
 
     def test_get_sales_filter_by_price_range(self):
         sales = AggregationService.get_sales(
-            date(2024, 1, 1), date(2024, 12, 31), price_min="60", price_max="200"
+            date(2024, 1, 1), date(2024, 12, 31), total_price_min="60", total_price_max="200"
         )
         self.assertEqual(sales.count(), 1)
         self.assertEqual(sales.first().item_name, "Widget B")
@@ -117,7 +117,7 @@ class TestAggregationService(TestCase):
 
     def test_get_sales_invalid_price_ignored(self):
         sales = AggregationService.get_sales(
-            date(2024, 1, 1), date(2024, 12, 31), price_min="not_a_number"
+            date(2024, 1, 1), date(2024, 12, 31), total_price_min="not_a_number"
         )
         self.assertEqual(sales.count(), 2)
 
@@ -125,7 +125,7 @@ class TestAggregationService(TestCase):
         sales = AggregationService.get_sales(
             date(2024, 1, 1), date(2024, 12, 31),
             item_name="Widget",
-            price_min="55",
+            total_price_min="55",
         )
         self.assertEqual(sales.count(), 1)
         self.assertEqual(sales.first().item_name, "Widget B")

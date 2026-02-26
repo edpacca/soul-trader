@@ -26,12 +26,20 @@
 
 .filter-label-input-large {
     display: grid;
-    grid-template-columns: 6rem 16rem 2rem;
+    grid-template-columns: 6rem 19rem;
+    gap: 1rem;
 }
 
 .filter-label-input-small {
     display: grid;
-    grid-template-columns: 6rem 9rem 2rem;
+    grid-template-columns: 6rem 9rem;
+    gap: 1rem;
+}
+
+.filter-label-input-num-range {
+    display: grid;
+    grid-template-columns: 6rem 9rem 9rem;
+    gap: 1rem;
 }
 
 .filter-section label {

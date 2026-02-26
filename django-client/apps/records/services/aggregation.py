@@ -71,8 +71,8 @@ class AggregationService:
         end_date: Optional[date] = None,
         *,
         item_name: str = "",
-        price_min: str = "",
-        price_max: str = "",
+        total_price_min: str = "",
+        total_price_max: str = "",
         post_code: str = "",
         notes: str = "",
         sort_field: str = "",
@@ -86,8 +86,8 @@ class AggregationService:
         qs = AggregationService._apply_filters(
             qs,
             item_name=item_name,
-            price_min=price_min,
-            price_max=price_max,
+            price_min=total_price_min,
+            price_max=total_price_max,
             post_code=post_code,
             notes=notes,
         )
@@ -100,8 +100,8 @@ class AggregationService:
         end_date: Optional[date] = None,
         *,
         item_name: str = "",
-        price_min: str = "",
-        price_max: str = "",
+        total_price_min: str = "",
+        total_price_max: str = "",
         post_code: str = "",
         notes: str = "",
         sort_field: str = "",
@@ -115,8 +115,8 @@ class AggregationService:
         qs = AggregationService._apply_filters(
             qs,
             item_name=item_name,
-            price_min=price_min,
-            price_max=price_max,
+            price_min=total_price_min,
+            price_max=total_price_max,
             post_code=post_code,
             notes=notes,
         )

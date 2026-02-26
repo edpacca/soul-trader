@@ -138,7 +138,6 @@ class CSVUploadAdmin(admin.ModelAdmin):
             parser = DefaultCSVParser(profile=obj.format_profile)
         else:
             parser = DefaultCSVParser()
-
         try:
             file_content = obj.file.read().decode("utf-8-sig")
         except UnicodeDecodeError:
@@ -218,7 +217,7 @@ class CSVFormatProfileAdmin(admin.ModelAdmin):
             "fields": ("name", "record_type", "is_active"),
         }),
         ("CSV Format Settings", {
-            "fields": ("delimiter", "date_format"),
+            "fields": ("delimiter", "date_format", "has_headers"),
             "description": (
                 "<strong>Delimiter:</strong> The character separating columns. "
                 "Common options: <code>,</code> (comma), <code>;</code> (semicolon), "

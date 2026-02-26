@@ -4,268 +4,278 @@
 *,
 *::before,
 *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    line-height: 1.6;
-    color: var(--text);
-    background-color: var(--bg0);
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	line-height: 1.6;
+	color: var(--text);
+	background-color: var(--bg0);
 }
 
 header {
-    background-color: var(--bg1);
-    padding: 1rem 2rem;
+	background-color: var(--bg1);
+	padding: 1rem 2rem;
 }
 
 header nav a {
-    color: var(--highlight);
-    text-decoration: none;
-    margin-right: 1.5rem;
-    font-weight: 500;
+	color: var(--highlight);
+	text-decoration: none;
+	margin-right: 1.5rem;
+	font-weight: 500;
 }
 
 header nav a:hover {
-    color: var(--text);
+	color: var(--text);
 }
 
 main {
-    max-width: 1200px;
-    margin: 2rem auto;
-    padding: 0 1rem;
+	max-width: 1200px;
+	margin: 2rem auto;
+	padding: 0 1rem;
 }
 
 h1 {
-    margin-bottom: 1.5rem;
-    color: var(--highlight);
+	margin-bottom: 1.5rem;
+	color: var(--highlight);
 }
 
 h2 {
-    margin-bottom: 1rem;
-    color: var(--highlight);
+	margin-bottom: 1rem;
+	color: var(--highlight);
 }
 
 .summary-section,
 .data-section {
-    background: var(--bg1);
-    padding: 1.5rem;
-    border-radius: 8px;
-    margin-bottom: 2rem;
+	background: var(--bg1);
+	padding: 1.5rem;
+	border-radius: 8px;
+	margin-bottom: 2rem;
 }
 
 table {
-    width: 100%;
-    border-collapse: collapse;
+	width: 100%;
+	border-collapse: collapse;
 }
 
 th,
 td {
-    padding: 0.75rem 1rem;
-    text-align: left;
-    border-bottom: 1px solid var(--border-color);
+	padding: 0.75rem 1rem;
+	text-align: left;
+	border-bottom: 1px solid var(--border-color);
 }
 
 th {
-    background-color: var(--bg2);
-    font-weight: 600;
-    color: var(--highlight);
+	background-color: var(--bg2);
+	font-weight: 600;
+	color: var(--highlight);
 }
 
 tbody tr:hover {
-    background-color: var(--bg3);
+	background-color: var(--bg3);
 }
 
 .profit-positive {
-    color:  var(--success);
-    font-weight: 600;
+	color:  var(--success);
+	font-weight: 600;
 }
 
 .profit-negative {
-    color: var(--warning);
-    font-weight: 600;
+	color: var(--warning);
+	font-weight: 600;
 }
 
 th.sortable {
-    cursor: pointer;
-    user-select: none;
-    white-space: nowrap;
+	cursor: pointer;
+	user-select: none;
+	white-space: nowrap;
 }
 
 th.sortable a {
-    color: var(--accent);
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
+	color: var(--accent);
+	text-decoration: none;
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
 }
 
 th.sortable a:hover {
-    color: var(--accent-hover);
+	color: var(--accent-hover);
 }
 
 th.sorted {
-    background-color: var(--bg3);
+	background-color: var(--bg3);
 }
 
 button {
-    background-color: var(--bg1);
-    border: 1px solid var(--border-color);
-    color: var(--accent);
-    padding: 0.5rem 1.5rem;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: background-color 0.2s, color 0.2s;
+	background-color: var(--bg1);
+	border: 1px solid var(--border-color);
+	color: var(--accent);
+	padding: 0.5rem 1.5rem;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 1rem;
+	transition: background-color 0.2s, color 0.2s;
 }
 
 button:hover {
-    background-color: var(--accent-hover);
-    color: var(--accent);
+	background-color: var(--accent-hover);
+	color: var(--accent);
 }
 
 label {
-    align-self: center;
+	align-self: center;
 }
 
 input[type="checkbox"] {
-    accent-color: var(--accent-hover);
+	accent-color: var(--accent-hover);
 }
 
 .sort-arrow {
-    font-size: 0.7rem;
-    line-height: 1;
+	font-size: 0.7rem;
+	line-height: 1;
 }
 
 .pagination {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    margin-top: 1rem;
-    flex-wrap: wrap;
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+	margin-top: 1rem;
+	flex-wrap: wrap;
 }
 
 .pagination-link {
-    display: inline-block;
-    padding: 0.4rem 0.75rem;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    text-decoration: none;
-    color: var(--accent);
-    font-size: 0.9rem;
-    transition: background-color 0.2s, color 0.2s;
+	display: inline-block;
+	padding: 0.4rem 0.75rem;
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	text-decoration: none;
+	color: var(--accent);
+	font-size: 0.9rem;
+	transition: background-color 0.2s, color 0.2s;
 }
 
 .pagination-link:hover:not(.disabled):not(.active) {
-    background-color: var(--accent-hover);
+	background-color: var(--accent-hover);
 }
 
 .pagination-link.active {
-    background-color: var(--accent-hover);
-    border-color: var(--accent-hover);
-    font-weight: 600;
+	background-color: var(--accent-hover);
+	border-color: var(--accent-hover);
+	font-weight: 600;
 }
 
 .pagination-link.disabled {
-    color: var(--bg3);
-    border-color: var(--bg3);
-    cursor: default;
+	color: var(--bg3);
+	border-color: var(--bg3);
+	cursor: default;
 }
 
 .pagination-ellipsis {
-    padding: 0.4rem 0.5rem;
-    color: #999;
+	padding: 0.4rem 0.5rem;
+	color: #999;
 }
 
 .pagination-info {
-    margin-left: 1rem;
-    font-size: 0.85rem;
-    color: #666;
+	margin-left: 1rem;
+	font-size: 0.85rem;
+	color: #666;
 }
 
 .detail-buttons {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1.5rem;
+	display: flex;
+	gap: 1rem;
+	margin-top: 1.5rem;
 }
 
 .detail-button {
-    background-color: var(--bg1);
-    border: 1px solid var(--border-color);
-    color: var(--accent);
-    padding: 0.5rem 1.5rem;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: background-color 0.2s, color 0.2s;
-    display: inline-block;
-    text-decoration: none;
-    font-weight: 500;
+	background-color: var(--bg1);
+	border: 1px solid var(--border-color);
+	color: var(--accent);
+	padding: 0.5rem 1.5rem;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 1rem;
+	transition: background-color 0.2s, color 0.2s;
+	display: inline-block;
+	text-decoration: none;
+	font-weight: 500;
 }
 
 .detail-button:hover {
-    background-color: var(--accent-hover);
+	background-color: var(--accent-hover);
 }
 
 .table-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
 }
 
 /* Notes modal */
 .modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background-color: rgba(0, 0, 0, 0.5);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	z-index: 1000;
 }
 
 .modal-content {
-    background: var(--bg1);
-    padding: 2rem;
-    border-radius: 8px;
-    width: 90%;
-    max-width: 500px;
-    border: 1px solid var(--border-color);
+	background: var(--bg1);
+	padding: 2rem;
+	border-radius: 8px;
+	width: 90%;
+	max-width: 500px;
+	border: 1px solid var(--border-color);
 }
 
 .modal-content h3 {
-    color: var(--highlight);
-    margin-bottom: 1rem;
+	color: var(--highlight);
+	margin-bottom: 1rem;
 }
 
 .modal-content textarea {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background: var(--bg0);
-    color: var(--text);
-    font-family: inherit;
-    font-size: 0.95rem;
-    resize: vertical;
+	width: 100%;
+	padding: 0.5rem;
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	background: var(--bg0);
+	color: var(--text);
+	font-family: inherit;
+	font-size: 0.95rem;
+	resize: vertical;
 }
 
 .modal-actions {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 1rem;
+	display: flex;
+	gap: 0.5rem;
+	margin-top: 1rem;
 }
 
 .notes-button {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.9rem;
-    min-width: 2rem;
-    text-align: center;
+	padding: 0.25rem 0.5rem;
+	font-size: 0.9rem;
+	min-width: 2rem;
+	text-align: center;
+	transition: 0.2s cubic-bezier(0.075, 0.82, 0.165, 1)
+}
+
+.notes-button.has-note {
+	background-color: var(--accent-hover);
+	transform: rotate(90deg);
+}
+
+.notes-button.has-note:hover {
+	color: var(--highlight);
 }
 
 

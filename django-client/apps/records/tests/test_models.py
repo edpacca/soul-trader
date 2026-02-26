@@ -15,6 +15,7 @@ class TestCSVFormatProfileModel(TestCase):
             "3": "unit_price",
             "4": "total_price",
             "5": "post_code",
+            "6": "shipping_cost"
         }
 
     def _build_profile(self, **overrides):
@@ -247,6 +248,7 @@ class TestCSVUploadAdminForm(TestCase):
             "3": "unit_price",
             "4": "total_price",
             "5": "post_code",
+            "6": "shipping_cost"
         }
 
     def _create_profile(self, record_type="sales", is_active=True, name="Test Profile"):
@@ -257,6 +259,7 @@ class TestCSVUploadAdminForm(TestCase):
             date_format="%Y-%m-%d",
             field_mappings=self.valid_mappings,
             is_active=is_active,
+            has_headers=False
         )
 
     def test_admin_add_requires_format_profile(self):
@@ -275,7 +278,7 @@ class TestCSVUploadAdminForm(TestCase):
 
     def test_admin_add_with_profile_succeeds(self):
         profile = self._create_profile()
-        csv_content = b"2024-01-01,Widget,10,5.00,50.00,AB1 2CD"
+        csv_content = b"2024-01-01,Widget,10,5.00,50.00,AB1 2CD,1.00"
         upload_file = SimpleUploadedFile("test.csv", csv_content, content_type="text/csv")
         response = self.client.post(
             "/admin/records/csvupload/add/",

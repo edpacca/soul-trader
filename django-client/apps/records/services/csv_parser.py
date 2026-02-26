@@ -62,7 +62,8 @@ class DefaultCSVParser(CSVParser):
             errors.append("CSV file is empty or has no header row.")
             return records, errors
 
-        csv_headers = rows[0]
+        data_rows = rows[1:] if self.profile.has_headers else rows
+
         mappings = self.profile.field_mappings
         date_format = self.profile.date_format
 
@@ -77,14 +78,13 @@ class DefaultCSVParser(CSVParser):
 
         for col_index_str in mappings:
             col_index = int(col_index_str)
-            if col_index >= len(csv_headers):
+            if col_index >= len(rows[0]):
                 errors.append(
                     f"Column index {col_index} is out of range "
-                    f"(CSV has {len(csv_headers)} columns)."
+                    f"(CSV has {len(rows[0])} columns)."
                 )
                 return records, errors
 
-        data_rows = rows[1:]
         for row_num, row in enumerate(data_rows, start=2):
             row_errors: list[str] = []
             parsed: dict[str, Any] = {}

@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% load query_helpers %}
+{% block title %}
+    {{ page_title }}
+{% endblock title %}
+{% block content %}
+    <h1>{{ page_title }}</h1>
+    <section class="summary-section">
+        <h2>Summary Totals</h2>
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th>Total Price</th>
+                    <th>Shipping Cost</th>
+                    <th>Quantity</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{ column_totals.total_price }}</td>
+                    <td>{{ column_totals.shipping_cost }}</td>
+                    <td>{{ column_totals.quantity }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+    <section class="filter-section">
+        <form method="get" action="{{ detail_url }}">
+            <h3>Filters</h3>
+            <div class="filter-row">
+                <div class="filter-label-input-num-range">
+                    <label for="start_date">Date</label>
+                    <input type="date"
+                           id="start_date"
+                           name="start_date"
+                           value="{{ start_date }}">
+                    <input type="date" id="end_date" name="end_date" value="{{ end_date }}">
+                </div>
+            </div>
+            {% for column in columns %}
+                {% if column.filter == "num_range" %}
+                    <div class="filter-row">
+                        <div class="filter-label-input-num-range">
+                            <label for="{{ column.field }}_min">{{ column.label }}</label>
+                            <input type="number"
+                                   id="{{ column.field }}_min"
+                                   name="{{ column.field }}_min"
+                                   value="{{ filters|get_min:column.field }}"
+                                   step="0.01"
+                                   min="0"
+                                   placeholder="min">
+                            <input type="number"
+                                   id="{{ column.field }}_max"
+                                   name="{{ column.field }}_max"
+                                   value="{{ filters|get_max:column.field }}"
+                                   step="0.01"
+                                   min="0"
+                                   placeholder="max">
+                        </div>
+                    </div>
+                {% endif %}
+                {% if column.filter == "text" %}
+                    <div class="filter-label-input-large">
+                        <label for="{{ column.field }}">{{ column.label }}</label>
+                        <input type="text"
+                               id="{{ column.field }}"
+                               name="{{ column.field }}"
+                               value="{{ filters|get_item:column.field }}"
+                               placeholder="{{ column.placeholder|default:'Contains...' }}">
+                    </div>
+                {% endif %}
+            {% endfor %}
+            <div class="filter-label-input-small">
+                <label for="page_size">Page Size:</label>
+                <select id="page_size" name="page_size">
+                    {% for size in allowed_page_sizes %}
+                        <option value="{{ size }}" {% if size == page_size %}selected{% endif %}>{{ size }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-actions">
+                <button type="submit">Apply Filters</button>
+                <a href="{{ detail_url }}" class="clear-filters">Clear All</a>
+            </div>
+            <input type="hidden" name="sort" value="{{ sort_field }}">
+            <input type="hidden" name="order" value="{{ sort_order }}">
+        </form>
+    </section>
+    <section class="data-section">
+        <div class="table-controls">
+            <h2>{{ section_heading }}</h2>
+            <div>
+                {% for column in columns %}
+                    {% if column.has_toggle %}
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="toggle-{{ column.field }}" checked>
+                        {{ column.label }}
+                    </label>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% if records %}
+            <table class="data-table" id="{{ table_id }}">
+                <thead>
+                    <tr>
+                        {% for column in columns %}
+                            {% sort_header filter_prefix column.field column.label %}
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                        <tr>
+                            {% for column in columns %}
+                                {% if column.field == "notes" %}
+                                    <td>
+                                        <button class="{{ record.notes|yesno:'notes-button has-note,notes-button' }}"
+                                                data-record-id="{{ record.id }}"
+                                                data-record-type="{{ record_type }}"
+                                                data-note="{{ record.notes }}">✎</button>
+                                    </td>
+                                {% else %}
+                                    <td>{{ record|get_attr:column.field }}</td>
+                                {% endif %}
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% include "records/pagination.html" with page_obj=records page_param="page" %}
+        {% else %}
+            <p>No records found for the selected filters.</p>
+        {% endif %}
+    </section>
+    {% include "records/notes_modal.html" %}
+    {% for column in columns %}
+        {% if column.has_toggle %}
+            <script>
+                    (function () {
+                        function toggleColumnVisibility(field, header) {
+                            var checkbox = document.getElementById(`toggle-${field}`);
+                            var table = document.getElementById('{{ table_id }}');
+                            function toggleVisibility() {
+                                if (!table) return;
+                                var headers = table.querySelectorAll('thead th');
+                                var colIndex = -1;
+                                for (var i = 0; i < headers.length; i++) {
+                                    if (headers[i].textContent.trim().indexOf(header) !== -1) {
+                                        colIndex = i;
+                                        break;
+                                    }
+                                }
+                                if (colIndex === -1) return;
+                                var display = checkbox.checked ? '' : 'none';
+                                localStorage.setItem('{{ column.field }}', checkbox.checked)
+                                headers[colIndex].style.display = display;
+                                var rows = table.querySelectorAll('tbody tr');
+                                for (var r = 0; r < rows.length; r++) {
+                                    var cells = rows[r].querySelectorAll('td');
+                                    if (cells[colIndex]) {
+                                        cells[colIndex].style.display = display;
+                                    }
+                                }
+                            }
+                            if (checkbox) {
+                                checkbox.addEventListener('change', toggleVisibility);
+                                var state = localStorage.getItem('{{ column.field }}')
+                                if (state == undefined || state == "false")
+                                {
+                                    checkbox.checked = false;
+                                    toggleVisibility();
+                                }
+                            }
+                        }
+
+                        toggleColumnVisibility('{{ column.field }}',  '{{ column.label }}');
+                    })();
+            </script>
+        {% endif %}
+    {% endfor %}
+    {% include "records/notes_js.html" %}
+{% endblock content %}

@@ -3,6 +3,7 @@ from datetime import date
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 from django.views.decorators.http import require_http_methods, require_POST
 
 from .models import PurchaseRecord, SalesRecord
@@ -11,15 +12,47 @@ from .services.aggregation import AggregationService
 ALLOWED_PAGE_SIZES = [25, 50, 100]
 DEFAULT_PAGE_SIZE = 25
 
+SALES_COLUMNS = [
+    # Date and Source filters are hardcoded so they don't have filter properties
+    {"field": "date",          "label": "Date"},
+    {"field": "item_name",     "label": "Item", "filter": "text", "placeholder": "e.g. Plains, Swamp..."},
+    {"field": "quantity",      "label": "Quantity"},
+    {"field": "unit_price",    "label": "Unit Price"},
+    {"field": "total_price",   "label": "Total Price", "filter": "num_range"},
+    {"field": "shipping_cost", "label": "Shipping"},
+    {"field": "source",        "label": "Source"},
+    {"field": "post_code",     "label": "Post Code", "filter": "text", "has_toggle": True},
+    {"field": "currency",      "label": "Currency", "has_toggle": True},
+    {"field": "notes",         "label": "Notes", "filter": "text"},
+]
 
-def _extract_filter_params(request, prefix):
-    return {
-        "item_name": request.GET.get(f"{prefix}_item_name", ""),
-        "price_min": request.GET.get(f"{prefix}_price_min", ""),
-        "price_max": request.GET.get(f"{prefix}_price_max", ""),
-        "post_code": request.GET.get(f"{prefix}_post_code", ""),
-    }
+PURCHASES_COLUMNS = [
+    # Date and Source filters are hardcoded so they don't have filter properties
+    {"field": "date",          "label": "Date"},
+    {"field": "item_name",     "label": "Item", "filter": "text"},
+    {"field": "quantity",      "label": "Quantity"},
+    {"field": "unit_price",    "label": "Unit Price"},
+    {"field": "total_price",   "label": "Total Price", "filter": "num_range"},
+    {"field": "shipping_cost", "label": "Shipping"},
+    {"field": "source",        "label": "Source"},
+    {"field": "currency",      "label": "Currency", "has_toggle": True},
+    {"field": "notes",         "label": "Notes", "filter": "text"},
+]
 
+def _extract_filter_params(request, filters):
+    return { filter_value: request.GET.get(f"{filter_value}", "") for filter_value in filters }
+
+def _parse_filter_names(columns):
+    filters_names = [
+    ]
+    for column in columns:
+        if "filter" in column:
+            if (column["filter"] == "num_range"):
+                filters_names.append(f"{column["field"]}_min")
+                filters_names.append(f"{column["field"]}_max")
+            elif column["filter"] == "text":
+                filters_names.append(column["field"])
+    return filters_names
 
 def _extract_sort_params(request, prefix):
     return {
@@ -126,7 +159,8 @@ def sales_detail(request):
     page_size = _parse_page_size(request)
 
     sort_params = _extract_sort_params(request, "sales")
-    filters = _extract_filter_params(request, "sales")
+    col_filters = _parse_filter_names(SALES_COLUMNS)
+    filters = _extract_filter_params(request, col_filters)
     sales_kwargs = {**filters, **sort_params}
 
     qs = AggregationService.get_sales(
@@ -135,20 +169,27 @@ def sales_detail(request):
     column_totals = AggregationService.get_column_totals(qs)
 
     paginator = Paginator(qs, page_size)
-    page = _get_page(paginator, request.GET.get("page"))
+    records = _get_page(paginator, request.GET.get("page"))
 
     context = {
         "start_date": start_date.isoformat() if start_date else "",
         "end_date": end_date.isoformat() if end_date else "",
         "filters": filters,
-        "records": page,
+        "records": records,
         "column_totals": column_totals,
         "page_size": page_size,
         "allowed_page_sizes": ALLOWED_PAGE_SIZES,
         "sort_field": sort_params["sort_field"],
         "sort_order": sort_params["sort_order"],
+        "page_title": "Sales Records",
+        "record_type": "sales",
+        "section_heading": "Sales",
+        "detail_url": reverse("records:sales_detail"),
+        "filter_prefix": "sales",
+        "table_id": "sales-table",
+        "columns": SALES_COLUMNS,
     }
-    return render(request, "records/sales_detail.html", context)
+    return render(request, "records/detail.html", context)
 
 
 def purchases_detail(request):
@@ -157,7 +198,8 @@ def purchases_detail(request):
     page_size = _parse_page_size(request)
 
     sort_params = _extract_sort_params(request, "purchases")
-    filters = _extract_filter_params(request, "purchases")
+    col_filters = _parse_filter_names(SALES_COLUMNS)
+    filters = _extract_filter_params(request, col_filters)
     purchases_kwargs = {**filters, **sort_params}
 
     qs = AggregationService.get_purchases(
@@ -167,20 +209,27 @@ def purchases_detail(request):
     column_totals = AggregationService.get_column_totals(qs)
 
     paginator = Paginator(qs, page_size)
-    page = _get_page(paginator, request.GET.get("page"))
+    records = _get_page(paginator, request.GET.get("page"))
 
     context = {
         "start_date": start_date.isoformat() if start_date else "",
         "end_date": end_date.isoformat() if end_date else "",
         "filters": filters,
-        "records": page,
+        "records": records,
         "column_totals": column_totals,
         "page_size": page_size,
         "allowed_page_sizes": ALLOWED_PAGE_SIZES,
         "sort_field": sort_params["sort_field"],
         "sort_order": sort_params["sort_order"],
+        "page_title": "Purchases Records",
+        "record_type": "purchases",
+        "section_heading": "Purchases",
+        "detail_url": reverse("records:purchases_detail"),
+        "filter_prefix": "purchases",
+        "table_id": "purchases-table",
+        "columns": PURCHASES_COLUMNS,
     }
-    return render(request, "records/purchases_detail.html", context)
+    return render(request, "records/detail.html", context)
 
 
 @require_POST
