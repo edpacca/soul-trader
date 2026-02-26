@@ -60,7 +60,7 @@ class CSVUpload(models.Model):
         ("purchase", "Purchase"),
     ]
 
-    file = models.FileField(upload_to="csv_uploads/")
+    file_name = models.CharField(max_length=255, blank=True)
     record_type = models.CharField(max_length=10, choices=RECORD_TYPE_CHOICES)
     format_profile = models.ForeignKey(
         "CSVFormatProfile",
@@ -88,7 +88,7 @@ class CSVUpload(models.Model):
         verbose_name_plural = "CSV Uploads"
 
     def __str__(self):
-        return f"{self.record_type} upload at {self.uploaded_at}"
+        return f"{self.record_type} upload ({self.file_name}) at {self.uploaded_at}"
 
 
 class CSVFormatProfile(models.Model):

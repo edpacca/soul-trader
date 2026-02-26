@@ -37,6 +37,7 @@ class PurchaseRecordAdmin(BaseRecordAdmin):
 
 
 class CSVUploadForm(forms.ModelForm):
+    file = forms.FileField(label="CSV File")
     confirm_duplicate = forms.BooleanField(
         required=False,
         label="Confirm duplicate upload",
@@ -45,10 +46,13 @@ class CSVUploadForm(forms.ModelForm):
 
     class Meta:
         model = CSVUpload
-        fields = "__all__"
+        fields = ["record_type", "format_profile", "source"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # File is only required for new uploads, not when editing existing ones
+        if self.instance.pk:
+            self.fields['file'].required = False
         # Auto-populate source from format profile if not set
         if not self.instance.pk and 'format_profile' in self.data:
             profile_id = self.data.get('format_profile')
@@ -80,9 +84,9 @@ class CSVUploadForm(forms.ModelForm):
 @admin.register(CSVUpload)
 class CSVUploadAdmin(admin.ModelAdmin):
     form = CSVUploadForm
-    list_display = ("record_type", "format_profile", "source", "uploaded_at", "rows_imported", "file")
+    list_display = ("record_type", "format_profile", "source", "uploaded_at", "rows_imported", "file_name")
     list_filter = ("record_type", "source")
-    readonly_fields = ("uploaded_at", "rows_imported", "errors", "imported_record_ids", "file_hash")
+    readonly_fields = ("uploaded_at", "rows_imported", "errors", "imported_record_ids", "file_hash", "file_name")
     actions = ['delete_imported_records']
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
@@ -128,7 +132,6 @@ class CSVUploadAdmin(admin.ModelAdmin):
                 model_class = SalesRecord if upload.record_type == "sales" else PurchaseRecord
                 deleted_count, _ = model_class.objects.filter(id__in=upload.imported_record_ids).delete()
                 total_deleted += deleted_count
-            upload.file.delete(save=False)
             upload.delete()
             uploads_deleted += 1
         self.message_user(request, f"Deleted {total_deleted} records and {uploads_deleted} upload(s).", messages.SUCCESS)
@@ -138,8 +141,10 @@ class CSVUploadAdmin(admin.ModelAdmin):
             parser = DefaultCSVParser(profile=obj.format_profile)
         else:
             parser = DefaultCSVParser()
+        uploaded_file = form.cleaned_data['file']
+        obj.file_name = uploaded_file.name
         try:
-            file_content = obj.file.read().decode("utf-8-sig")
+            file_content = uploaded_file.read().decode("utf-8-sig")
         except UnicodeDecodeError:
             self.message_user(request, "File encoding error. Please upload a UTF-8 encoded CSV.", messages.ERROR)
             obj.delete()
@@ -160,7 +165,6 @@ class CSVUploadAdmin(admin.ModelAdmin):
                 f"To proceed, re-upload with the 'Confirm duplicate upload' checkbox checked.",
                 messages.ERROR,
             )
-            obj.file.delete(save=False)
             obj.delete()
             return
 
