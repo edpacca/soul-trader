@@ -486,8 +486,8 @@ class TestImportedRecordIds(CSVUploadAdminTestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(PurchaseRecord.objects.count(), 0)
 
-    def test_delete_action_removes_upload_and_file(self):
-        """After the action runs, the CSVUpload object is deleted along with its file."""
+    def test_delete_action_removes_upload_and_records(self):
+        """After the action runs, the CSVUpload object and its associated records are deleted."""
         csv_content = self._make_valid_csv()
         self._upload_csv(csv_content)
         upload = CSVUpload.objects.first()
@@ -523,7 +523,7 @@ class TestImportedRecordIds(CSVUploadAdminTestBase):
     def test_delete_action_with_empty_ids(self):
         """The action handles uploads with no imported_record_ids gracefully (still deletes upload)."""
         upload = CSVUpload.objects.create(
-            file="csv_uploads/test.csv",
+            file_name="test.csv",
             record_type="sales",
             imported_record_ids=[],
         )

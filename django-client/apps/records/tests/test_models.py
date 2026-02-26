@@ -194,7 +194,7 @@ class TestCSVUploadFormatProfile(TestCase):
 
     def test_format_profile_nullable(self):
         upload = CSVUpload.objects.create(
-            file="csv_uploads/test.csv",
+            file_name="test.csv",
             record_type="sales",
         )
         self.assertIsNone(upload.format_profile)
@@ -202,7 +202,7 @@ class TestCSVUploadFormatProfile(TestCase):
     def test_format_profile_assignment(self):
         profile = self._create_profile()
         upload = CSVUpload.objects.create(
-            file="csv_uploads/test.csv",
+            file_name="test.csv",
             record_type="sales",
             format_profile=profile,
         )
@@ -212,7 +212,7 @@ class TestCSVUploadFormatProfile(TestCase):
     def test_format_profile_set_null_on_delete(self):
         profile = self._create_profile()
         upload = CSVUpload.objects.create(
-            file="csv_uploads/test.csv",
+            file_name="test.csv",
             record_type="sales",
             format_profile=profile,
         )
@@ -223,12 +223,12 @@ class TestCSVUploadFormatProfile(TestCase):
     def test_format_profile_reverse_relation(self):
         profile = self._create_profile()
         CSVUpload.objects.create(
-            file="csv_uploads/test1.csv",
+            file_name="test1.csv",
             record_type="sales",
             format_profile=profile,
         )
         CSVUpload.objects.create(
-            file="csv_uploads/test2.csv",
+            file_name="test2.csv",
             record_type="sales",
             format_profile=profile,
         )
@@ -309,13 +309,12 @@ class TestCSVUploadAdminForm(TestCase):
 
     def test_admin_edit_existing_upload_without_profile_allowed(self):
         upload = CSVUpload.objects.create(
-            file="csv_uploads/test.csv",
+            file_name="test.csv",
             record_type="sales",
         )
         response = self.client.post(
             f"/admin/records/csvupload/{upload.pk}/change/",
             {
-                "file": upload.file,
                 "record_type": "sales",
                 "format_profile": "",
             },
@@ -339,14 +338,14 @@ class TestCSVUploadNewFields(TestCase):
 
     def test_imported_record_ids_default_empty_list(self):
         upload = CSVUpload.objects.create(
-            file="csv_uploads/test.csv",
+            file_name="test.csv",
             record_type="sales",
         )
         self.assertEqual(upload.imported_record_ids, [])
 
     def test_imported_record_ids_stores_integers(self):
         upload = CSVUpload.objects.create(
-            file="csv_uploads/test.csv",
+            file_name="test.csv",
             record_type="sales",
             imported_record_ids=[1, 2, 3],
         )
@@ -356,7 +355,7 @@ class TestCSVUploadNewFields(TestCase):
     def test_imported_record_ids_stores_strings(self):
         """Should work with UUID-like string IDs too."""
         upload = CSVUpload.objects.create(
-            file="csv_uploads/test.csv",
+            file_name="test.csv",
             record_type="sales",
             imported_record_ids=["abc-123", "def-456"],
         )
@@ -365,7 +364,7 @@ class TestCSVUploadNewFields(TestCase):
 
     def test_file_hash_default_blank(self):
         upload = CSVUpload.objects.create(
-            file="csv_uploads/test.csv",
+            file_name="test.csv",
             record_type="sales",
         )
         self.assertEqual(upload.file_hash, "")
@@ -373,7 +372,7 @@ class TestCSVUploadNewFields(TestCase):
     def test_file_hash_stores_64_char_hex(self):
         hash_value = "a" * 64
         upload = CSVUpload.objects.create(
-            file="csv_uploads/test.csv",
+            file_name="test.csv",
             record_type="sales",
             file_hash=hash_value,
         )
