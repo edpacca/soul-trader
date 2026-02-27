@@ -23,10 +23,10 @@ _Features enabling manual exports, automated scheduled backups, and remote cloud
 
 **Acceptance Criteria**
 
-- [ ]  User can trigger an export via UI
-- [ ]  Supports DB dump **or** CSV/JSON export per table
-- [ ]  Provides downloadable file/link
-- [ ]  Displays a clear error if export fails
+- [X]  User can trigger an export via UI
+- [X]  Supports DB dump **or** CSV/JSON export per table
+- [X]  Provides downloadable file/link
+- [X]  Displays a clear error if export fails
 
 ---
 
