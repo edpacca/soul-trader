@@ -191,6 +191,10 @@ input[type="checkbox"] {
 	margin-top: 1.5rem;
 }
 
+td.detail-buttons {
+	margin-top: 0;
+}
+
 .detail-button {
 	background-color: var(--bg1);
 	border: 1px solid var(--border-color);
@@ -203,6 +207,14 @@ input[type="checkbox"] {
 	display: inline-block;
 	text-decoration: none;
 	font-weight: 500;
+}
+
+.detail-button.small {
+	font-size: 0.9rem;
+}
+
+a.detail-button.small {
+	padding: 0.25rem 1.5rem;
 }
 
 .detail-button:hover {
@@ -278,4 +290,8 @@ input[type="checkbox"] {
 	color: var(--highlight);
 }
 
-
+.flex-row {
+	display: flex;
+	flex-direction: row;
+	gap: 1em;
+}

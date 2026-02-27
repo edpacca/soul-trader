@@ -54,6 +54,33 @@ class PurchaseRecord(BaseRecord):
         verbose_name_plural = "Purchase Records"
 
 
+class ReportPreset(models.Model):
+    REPORT_TYPE_CHOICES = [
+        ("sales", "Sales"),
+        ("purchases", "Purchases"),
+        ("combined", "Business / Combined"),
+    ]
+    TIME_WINDOW_CHOICES = [
+        ("last_7_days", "Last 7 Days"),
+        ("last_30_days", "Last 30 Days"),
+        ("this_month", "This Month"),
+        ("this_year", "This Year"),
+        ("all_time", "All Time"),
+    ]
+    name = models.CharField(max_length=200)
+    report_type = models.CharField(max_length=20, choices=REPORT_TYPE_CHOICES)
+    time_window = models.CharField(max_length=30, choices=TIME_WINDOW_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Report Preset"
+        verbose_name_plural = "Report Presets"
+
+    def __str__(self):
+        return f"{self.name} ({self.get_report_type_display()} - {self.get_time_window_display()})"
+
+
 class CSVUpload(models.Model):
     RECORD_TYPE_CHOICES = [
         ("sales", "Sales"),

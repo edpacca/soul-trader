@@ -3,15 +3,15 @@ from io import BytesIO
 
 from django.conf import settings
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.http import HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, render
-from django.template.loader import render_to_string
+from django.http import HttpResponseRedirect, JsonResponse, HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods, require_POST
+from django.template.loader import render_to_string
 
-
-from .models import PurchaseRecord, SalesRecord
+from .models import PurchaseRecord, ReportPreset, SalesRecord
 from .services.aggregation import AggregationService
+from .services.presets import resolve_time_window
 
 ALLOWED_PAGE_SIZES = [25, 50, 100]
 DEFAULT_PAGE_SIZE = 25
@@ -154,6 +154,8 @@ def dashboard(request):
     if purchases_detail_params:
         purchases_detail_url += "?" + "&".join(purchases_detail_params)
 
+    presets = ReportPreset.objects.filter(report_type="combined")
+
     context = {
         "sales_start_date": sales_start.isoformat() if sales_start else "",
         "sales_end_date": sales_end.isoformat() if sales_end else "",
@@ -163,6 +165,7 @@ def dashboard(request):
         "summary": summary,
         "sales_detail_url": sales_detail_url,
         "purchases_detail_url": purchases_detail_url,
+        "presets": presets,
     }
     return render(request, "records/dashboard.html", context)
 
@@ -185,6 +188,8 @@ def sales_detail(request):
     paginator = Paginator(qs, page_size)
     records = _get_page(paginator, request.GET.get("page"))
 
+    presets = ReportPreset.objects.filter(report_type="sales")
+
     context = {
         "start_date": start_date.isoformat() if start_date else "",
         "end_date": end_date.isoformat() if end_date else "",
@@ -202,6 +207,7 @@ def sales_detail(request):
         "filter_prefix": "sales",
         "table_id": "sales-table",
         "columns": SALES_COLUMNS,
+        "presets": presets,
         **_build_year_range(),
     }
     return render(request, "records/detail.html", context)
@@ -226,6 +232,8 @@ def purchases_detail(request):
     paginator = Paginator(qs, page_size)
     records = _get_page(paginator, request.GET.get("page"))
 
+    presets = ReportPreset.objects.filter(report_type="purchases")
+
     context = {
         "start_date": start_date.isoformat() if start_date else "",
         "end_date": end_date.isoformat() if end_date else "",
@@ -243,6 +251,7 @@ def purchases_detail(request):
         "filter_prefix": "purchases",
         "table_id": "purchases-table",
         "columns": PURCHASES_COLUMNS,
+        "presets": presets,
         **_build_year_range(),
     }
     return render(request, "records/detail.html", context)
@@ -278,6 +287,95 @@ def delete_purchase_note(request, record_id):
     record.notes = ""
     record.save(update_fields=["notes"])
     return JsonResponse({"id": record.id, "notes": ""})
+
+
+def preset_list(request):
+    presets_by_type = {}
+    for report_type, label in ReportPreset.REPORT_TYPE_CHOICES:
+        qs = ReportPreset.objects.filter(report_type=report_type)
+        if qs.exists():
+            presets_by_type[label] = qs
+
+    context = {
+        "presets_by_type": presets_by_type,
+    }
+    return render(request, "records/reports.html", context)
+
+
+def preset_create(request):
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        report_type = request.POST.get("report_type", "")
+        time_window = request.POST.get("time_window", "")
+
+        valid_report_types = [c[0] for c in ReportPreset.REPORT_TYPE_CHOICES]
+        valid_time_windows = [c[0] for c in ReportPreset.TIME_WINDOW_CHOICES]
+
+        errors = []
+        if not name:
+            errors.append("Name is required.")
+        if report_type not in valid_report_types:
+            errors.append("Invalid report type.")
+        if time_window not in valid_time_windows:
+            errors.append("Invalid time window.")
+
+        if not errors:
+            ReportPreset.objects.create(
+                name=name,
+                report_type=report_type,
+                time_window=time_window,
+            )
+            return redirect("records:preset_list")
+
+        context = {
+            "errors": errors,
+            "name": name,
+            "report_type": report_type,
+            "time_window": time_window,
+            "report_type_choices": ReportPreset.REPORT_TYPE_CHOICES,
+            "time_window_choices": ReportPreset.TIME_WINDOW_CHOICES,
+        }
+        return render(request, "records/report_preset_form.html", context)
+
+    context = {
+        "report_type_choices": ReportPreset.REPORT_TYPE_CHOICES,
+        "time_window_choices": ReportPreset.TIME_WINDOW_CHOICES,
+        "name": "",
+        "report_type": "",
+        "time_window": "",
+    }
+    return render(request, "records/report_preset_form.html", context)
+
+
+@require_POST
+def preset_delete(request, preset_id):
+    preset = get_object_or_404(ReportPreset, pk=preset_id)
+    preset.delete()
+    return redirect("records:preset_list")
+
+
+def preset_run(request, preset_id):
+    preset = get_object_or_404(ReportPreset, pk=preset_id)
+    start_date, end_date = resolve_time_window(preset.time_window)
+
+    url_name_map = {
+        "sales": "records:sales_pdf_export",
+        "purchases": "records:purchases_pdf_export",
+        "combined": "records:business_pdf_export",
+    }
+    url_name = url_name_map[preset.report_type]
+    base_url = reverse(url_name)
+
+    params = []
+    if start_date is not None:
+        params.append(f"start_date={start_date.isoformat()}")
+    if end_date is not None:
+        params.append(f"end_date={end_date.isoformat()}")
+
+    if params:
+        base_url += "?" + "&".join(params)
+
+    return HttpResponseRedirect(base_url)
 
 
 def notes_list(request):
