@@ -1,13 +1,20 @@
-from datetime import date
+from datetime import date, datetime
+from io import BytesIO
 
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.http import HttpResponseRedirect, JsonResponse, HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods, require_POST
+from django.template.loader import render_to_string
 
-from .models import PurchaseRecord, SalesRecord
+from .models import PurchaseRecord, ReportPreset, SalesRecord, Source
 from .services.aggregation import AggregationService
+from .services.export_service import export_records_as_csv
+from .services.presets import resolve_time_window
 
 ALLOWED_PAGE_SIZES = [25, 50, 100]
 DEFAULT_PAGE_SIZE = 25
@@ -48,8 +55,8 @@ def _parse_filter_names(columns):
     for column in columns:
         if "filter" in column:
             if (column["filter"] == "num_range"):
-                filters_names.append(f"{column["field"]}_min")
-                filters_names.append(f"{column["field"]}_max")
+                filters_names.append(f"{column['field']}_min")
+                filters_names.append(f"{column['field']}_max")
             elif column["filter"] == "text":
                 filters_names.append(column["field"])
     return filters_names
@@ -77,6 +84,16 @@ def _parse_date(value, default=None):
         return date.fromisoformat(value)
     except ValueError:
         return default
+
+
+def _build_year_range():
+    """Return the min and max years that have records, for the year spinner."""
+    today = date.today()
+    return {
+        "year_min": 2015,
+        "year_max": today.year,
+        "current_year": today.year,
+    }
 
 
 def _parse_page_size(request):
@@ -140,6 +157,8 @@ def dashboard(request):
     if purchases_detail_params:
         purchases_detail_url += "?" + "&".join(purchases_detail_params)
 
+    presets = ReportPreset.objects.filter(report_type="combined")
+
     context = {
         "sales_start_date": sales_start.isoformat() if sales_start else "",
         "sales_end_date": sales_end.isoformat() if sales_end else "",
@@ -149,6 +168,7 @@ def dashboard(request):
         "summary": summary,
         "sales_detail_url": sales_detail_url,
         "purchases_detail_url": purchases_detail_url,
+        "presets": presets,
     }
     return render(request, "records/dashboard.html", context)
 
@@ -158,10 +178,14 @@ def sales_detail(request):
     end_date = _parse_date(request.GET.get("end_date", ""))
     page_size = _parse_page_size(request)
 
+    # Extract source filter
+    source_ids = request.GET.getlist("source_ids")
+    source_ids = [int(sid) for sid in source_ids if sid and sid.isdigit()]
+
     sort_params = _extract_sort_params(request, "sales")
     col_filters = _parse_filter_names(SALES_COLUMNS)
     filters = _extract_filter_params(request, col_filters)
-    sales_kwargs = {**filters, **sort_params}
+    sales_kwargs = {**filters, **sort_params, "source_ids": source_ids}
 
     qs = AggregationService.get_sales(
         start_date, end_date, **sales_kwargs
@@ -170,6 +194,9 @@ def sales_detail(request):
 
     paginator = Paginator(qs, page_size)
     records = _get_page(paginator, request.GET.get("page"))
+
+    presets = ReportPreset.objects.filter(report_type="sales")
+    all_sources = Source.objects.all()
 
     context = {
         "start_date": start_date.isoformat() if start_date else "",
@@ -188,6 +215,10 @@ def sales_detail(request):
         "filter_prefix": "sales",
         "table_id": "sales-table",
         "columns": SALES_COLUMNS,
+        "presets": presets,
+        "all_sources": all_sources,
+        "selected_source_ids": source_ids,
+        **_build_year_range(),
     }
     return render(request, "records/detail.html", context)
 
@@ -197,10 +228,14 @@ def purchases_detail(request):
     end_date = _parse_date(request.GET.get("end_date", ""))
     page_size = _parse_page_size(request)
 
+    # Extract source filter
+    source_ids = request.GET.getlist("source_ids")
+    source_ids = [int(sid) for sid in source_ids if sid and sid.isdigit()]
+
     sort_params = _extract_sort_params(request, "purchases")
-    col_filters = _parse_filter_names(SALES_COLUMNS)
+    col_filters = _parse_filter_names(PURCHASES_COLUMNS)
     filters = _extract_filter_params(request, col_filters)
-    purchases_kwargs = {**filters, **sort_params}
+    purchases_kwargs = {**filters, **sort_params, "source_ids": source_ids}
 
     qs = AggregationService.get_purchases(
         start_date, end_date,
@@ -210,6 +245,9 @@ def purchases_detail(request):
 
     paginator = Paginator(qs, page_size)
     records = _get_page(paginator, request.GET.get("page"))
+
+    presets = ReportPreset.objects.filter(report_type="purchases")
+    all_sources = Source.objects.all()
 
     context = {
         "start_date": start_date.isoformat() if start_date else "",
@@ -228,6 +266,10 @@ def purchases_detail(request):
         "filter_prefix": "purchases",
         "table_id": "purchases-table",
         "columns": PURCHASES_COLUMNS,
+        "presets": presets,
+        "all_sources": all_sources,
+        "selected_source_ids": source_ids,
+        **_build_year_range(),
     }
     return render(request, "records/detail.html", context)
 
@@ -262,6 +304,95 @@ def delete_purchase_note(request, record_id):
     record.notes = ""
     record.save(update_fields=["notes"])
     return JsonResponse({"id": record.id, "notes": ""})
+
+
+def preset_list(request):
+    presets_by_type = {}
+    for report_type, label in ReportPreset.REPORT_TYPE_CHOICES:
+        qs = ReportPreset.objects.filter(report_type=report_type)
+        if qs.exists():
+            presets_by_type[label] = qs
+
+    context = {
+        "presets_by_type": presets_by_type,
+    }
+    return render(request, "records/reports.html", context)
+
+
+def preset_create(request):
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        report_type = request.POST.get("report_type", "")
+        time_window = request.POST.get("time_window", "")
+
+        valid_report_types = [c[0] for c in ReportPreset.REPORT_TYPE_CHOICES]
+        valid_time_windows = [c[0] for c in ReportPreset.TIME_WINDOW_CHOICES]
+
+        errors = []
+        if not name:
+            errors.append("Name is required.")
+        if report_type not in valid_report_types:
+            errors.append("Invalid report type.")
+        if time_window not in valid_time_windows:
+            errors.append("Invalid time window.")
+
+        if not errors:
+            ReportPreset.objects.create(
+                name=name,
+                report_type=report_type,
+                time_window=time_window,
+            )
+            return redirect("records:preset_list")
+
+        context = {
+            "errors": errors,
+            "name": name,
+            "report_type": report_type,
+            "time_window": time_window,
+            "report_type_choices": ReportPreset.REPORT_TYPE_CHOICES,
+            "time_window_choices": ReportPreset.TIME_WINDOW_CHOICES,
+        }
+        return render(request, "records/report_preset_form.html", context)
+
+    context = {
+        "report_type_choices": ReportPreset.REPORT_TYPE_CHOICES,
+        "time_window_choices": ReportPreset.TIME_WINDOW_CHOICES,
+        "name": "",
+        "report_type": "",
+        "time_window": "",
+    }
+    return render(request, "records/report_preset_form.html", context)
+
+
+@require_POST
+def preset_delete(request, preset_id):
+    preset = get_object_or_404(ReportPreset, pk=preset_id)
+    preset.delete()
+    return redirect("records:preset_list")
+
+
+def preset_run(request, preset_id):
+    preset = get_object_or_404(ReportPreset, pk=preset_id)
+    start_date, end_date = resolve_time_window(preset.time_window)
+
+    url_name_map = {
+        "sales": "records:sales_pdf_export",
+        "purchases": "records:purchases_pdf_export",
+        "combined": "records:business_pdf_export",
+    }
+    url_name = url_name_map[preset.report_type]
+    base_url = reverse(url_name)
+
+    params = []
+    if start_date is not None:
+        params.append(f"start_date={start_date.isoformat()}")
+    if end_date is not None:
+        params.append(f"end_date={end_date.isoformat()}")
+
+    if params:
+        base_url += "?" + "&".join(params)
+
+    return HttpResponseRedirect(base_url)
 
 
 def notes_list(request):
@@ -303,3 +434,166 @@ def notes_list(request):
         "current_type": record_type,
     }
     return render(request, "records/notes_list.html", context)
+
+
+def _render_pdf(template_name, context):
+    """Render a Django template to HTML or PDF based on DEBUG setting.
+
+    Returns:
+        tuple: (content, content_type) where content is either HTML string or PDF bytes,
+               and content_type is either "html" or "pdf"
+    """
+    html_string = render_to_string(template_name, context)
+    if settings.DEBUG:
+        return html_string, "html"
+
+    import weasyprint
+    pdf_file = BytesIO()
+    weasyprint.HTML(string=html_string).write_pdf(pdf_file)
+    return pdf_file.getvalue(), "pdf"
+
+
+def _parse_columns(columns_param, all_columns):
+    """Parse a comma-separated columns param into a filtered list of column dicts."""
+    if not columns_param:
+        return list(all_columns)
+    requested = [c.strip() for c in columns_param.split(",") if c.strip()]
+    all_fields = {col["field"] for col in all_columns}
+    valid = [f for f in requested if f in all_fields]
+    if not valid:
+        return list(all_columns)
+    field_to_col = {col["field"]: col for col in all_columns}
+    return [field_to_col[f] for f in valid]
+
+
+def sales_pdf_export(request):
+    start_date = _parse_date(request.GET.get("start_date", ""))
+    end_date = _parse_date(request.GET.get("end_date", ""))
+
+    # Extract source filter
+    source_ids = request.GET.getlist("source_ids")
+    source_ids = [int(sid) for sid in source_ids if sid and sid.isdigit()]
+
+    sort_params = _extract_sort_params(request, "sales")
+    col_filters = _parse_filter_names(SALES_COLUMNS)
+    filters = _extract_filter_params(request, col_filters)
+    sales_kwargs = {**filters, **sort_params, "source_ids": source_ids}
+
+    qs = AggregationService.get_sales(start_date, end_date, **sales_kwargs)
+    column_totals = AggregationService.get_column_totals(qs)
+
+    columns = _parse_columns(request.GET.get("columns", ""), SALES_COLUMNS)
+
+    context = {
+        "records": qs,
+        "column_totals": column_totals,
+        "columns": columns,
+        "start_date": start_date.isoformat() if start_date else "All",
+        "end_date": end_date.isoformat() if end_date else "All",
+        "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
+    content, content_type = _render_pdf("records/pdf_sales.html", context)
+    if content_type == "html":
+        return HttpResponse(content, content_type="text/html")
+    response = HttpResponse(content, content_type="application/pdf")
+    response["Content-Disposition"] = 'attachment; filename="sales_report.pdf"'
+    return response
+
+
+def purchases_pdf_export(request):
+    start_date = _parse_date(request.GET.get("start_date", ""))
+    end_date = _parse_date(request.GET.get("end_date", ""))
+
+    # Extract source filter
+    source_ids = request.GET.getlist("source_ids")
+    source_ids = [int(sid) for sid in source_ids if sid and sid.isdigit()]
+
+    sort_params = _extract_sort_params(request, "purchases")
+    col_filters = _parse_filter_names(PURCHASES_COLUMNS)
+    filters = _extract_filter_params(request, col_filters)
+    purchases_kwargs = {**filters, **sort_params, "source_ids": source_ids}
+
+    qs = AggregationService.get_purchases(start_date, end_date, **purchases_kwargs)
+    column_totals = AggregationService.get_column_totals(qs)
+
+    columns = _parse_columns(request.GET.get("columns", ""), PURCHASES_COLUMNS)
+
+    context = {
+        "records": qs,
+        "column_totals": column_totals,
+        "columns": columns,
+        "start_date": start_date.isoformat() if start_date else "All",
+        "end_date": end_date.isoformat() if end_date else "All",
+        "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
+    content, content_type = _render_pdf("records/pdf_purchases.html", context)
+    if content_type == "html":
+        return HttpResponse(content, content_type="text/html")
+    response = HttpResponse(content, content_type="application/pdf")
+    response["Content-Disposition"] = 'attachment; filename="purchases_report.pdf"'
+    return response
+
+
+@login_required
+def export_csv(request):
+    table = request.GET.get("table", "all")
+    record_type_map = {
+        "sales": "sales",
+        "purchases": "purchase",
+        "all": "all",
+    }
+    record_type = record_type_map.get(table, "all")
+    try:
+        csv_content = export_records_as_csv(record_type)
+    except Exception as e:
+        messages.error(request, f"CSV export failed: {e}")
+        return redirect("records:dashboard")
+
+    today = date.today().isoformat()
+    response = HttpResponse(csv_content, content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="soultrader_export_{table}_{today}.csv"'
+    return response
+
+
+
+def business_pdf_export(request):
+    sales_start = _parse_date(request.GET.get("sales_start_date", ""))
+    sales_end = _parse_date(request.GET.get("sales_end_date", ""))
+    purchases_start = _parse_date(request.GET.get("purchases_start_date", ""))
+    purchases_end = _parse_date(request.GET.get("purchases_end_date", ""))
+
+    sales_summary = AggregationService.get_summary(sales_start, sales_end)
+    purchases_summary = AggregationService.get_summary(purchases_start, purchases_end)
+
+    sales_qs = AggregationService.get_sales(sales_start, sales_end)
+    purchases_qs = AggregationService.get_purchases(purchases_start, purchases_end)
+    sales_totals = AggregationService.get_column_totals(sales_qs)
+    purchases_totals = AggregationService.get_column_totals(purchases_qs)
+
+    total_sales = sales_summary["total_sales"]
+    total_purchases = purchases_summary["total_purchases"]
+    net_profit = total_sales - total_purchases
+
+    context = {
+        "total_sales": total_sales,
+        "total_purchases": total_purchases,
+        "net_profit": net_profit,
+        "sales_count": sales_summary["sales_count"],
+        "purchases_count": purchases_summary["purchases_count"],
+        "sales_totals": sales_totals,
+        "purchases_totals": purchases_totals,
+        "sales_start_date": sales_start.isoformat() if sales_start else "All",
+        "sales_end_date": sales_end.isoformat() if sales_end else "All",
+        "purchases_start_date": purchases_start.isoformat() if purchases_start else "All",
+        "purchases_end_date": purchases_end.isoformat() if purchases_end else "All",
+        "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
+    content, content_type = _render_pdf("records/pdf_business.html", context)
+    if content_type == "html":
+        return HttpResponse(content, content_type="text/html")
+    response = HttpResponse(content, content_type="application/pdf")
+    response["Content-Disposition"] = 'attachment; filename="business_report.pdf"'
+    return response

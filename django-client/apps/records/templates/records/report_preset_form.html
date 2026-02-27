@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Create Report Preset{% endblock title %}
+
+{% block content %}
+<h1>Create Report Preset</h1>
+
+{% if errors %}
+<ul class="error-list">
+    {% for error in errors %}
+    <li>{{ error }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+<section class="filter-section">
+    <form method="post" action="{% url 'records:preset_create' %}">
+        {% csrf_token %}
+        <div class="filter-row">
+            <div class="filter-label-input-small">
+                <label for="name">Name:</label>
+                <input type="text" id="name" name="name" value="{{ name }}" required maxlength="200">
+            </div>
+        </div>
+        <div class="filter-row">
+            <div class="filter-label-input-small">
+                <label for="report_type">Report Type:</label>
+                <select id="report_type" name="report_type" required>
+                    <option value="">-- Select --</option>
+                    {% for value, label in report_type_choices %}
+                    <option value="{{ value }}" {% if report_type == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="filter-row">
+            <div class="filter-label-input-small">
+                <label for="time_window">Time Window:</label>
+                <select id="time_window" name="time_window" required>
+                    <option value="">-- Select --</option>
+                    {% for value, label in time_window_choices %}
+                    <option value="{{ value }}" {% if time_window == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="filter-actions">
+            <button type="submit">Save Preset</button>
+            <a href="{% url 'records:preset_list' %}" class="clear-filters">Cancel</a>
+        </div>
+    </form>
+</section>
+{% endblock content %}

@@ -1,3 +1,4 @@
+import uuid as uuid_lib
 from datetime import date
 from decimal import Decimal
 from unittest.mock import MagicMock
@@ -386,3 +387,98 @@ class TestDefaultCSVParserWithProfile(TestCase):
 
         self.assertEqual(len(records), 1)
         self.assertEqual(records[0]["currency"], "GBP")
+
+    def test_parse_with_profile_uuid_mapping(self):
+        """UUID value is parsed and present in the returned record dict when using profile."""
+        test_uuid = str(uuid_lib.uuid4())
+        profile = _make_profile(
+            field_mappings={
+                "0": "uuid",
+                "1": "date",
+                "2": "item_name",
+                "3": "quantity",
+                "4": "unit_price",
+                "5": "total_price",
+                "6": "shipping_cost",
+                "7": "post_code",
+            }
+        )
+        parser = DefaultCSVParser(profile=profile)
+        csv_content = (
+            f"uuid,date,item_name,quantity,unit_price,total_price,shipping_cost,post_code\n"
+            f"{test_uuid},2024-01-15,Widget A,10,5.00,50.00,3.50,SW1A 1AA\n"
+        )
+        records, errors = parser.parse(csv_content)
+
+        self.assertEqual(len(records), 1)
+        self.assertEqual(len(errors), 0)
+        self.assertEqual(records[0]["uuid"], uuid_lib.UUID(test_uuid))
+
+    def test_parse_with_profile_invalid_uuid(self):
+        """Invalid UUID in profile-based parse produces an error."""
+        profile = _make_profile(
+            field_mappings={
+                "0": "uuid",
+                "1": "date",
+                "2": "item_name",
+                "3": "quantity",
+                "4": "unit_price",
+                "5": "total_price",
+                "6": "shipping_cost",
+                "7": "post_code",
+            }
+        )
+        parser = DefaultCSVParser(profile=profile)
+        csv_content = (
+            "uuid,date,item_name,quantity,unit_price,total_price,shipping_cost,post_code\n"
+            "not-a-uuid,2024-01-15,Widget A,10,5.00,50.00,3.50,SW1A 1AA\n"
+        )
+        records, errors = parser.parse(csv_content)
+
+        self.assertEqual(len(records), 0)
+        self.assertEqual(len(errors), 1)
+        self.assertIn("invalid uuid", errors[0])
+
+
+class TestLegacyParserUUID(TestCase):
+    """Tests for UUID handling in the legacy (no-profile) parser."""
+
+    def setUp(self):
+        self.parser = DefaultCSVParser()
+
+    def test_parse_legacy_with_uuid_column(self):
+        """UUID value is parsed and present in the returned record dict."""
+        test_uuid = str(uuid_lib.uuid4())
+        csv_content = (
+            "date,item_name,quantity,unit_price,total_price,shipping_cost,post_code,uuid\n"
+            f"2024-01-15,Widget A,10,5.00,50.00,3.50,SW1A 1AA,{test_uuid}\n"
+        )
+        records, errors = self.parser.parse(csv_content)
+
+        self.assertEqual(len(records), 1)
+        self.assertEqual(len(errors), 0)
+        self.assertEqual(records[0]["uuid"], uuid_lib.UUID(test_uuid))
+
+    def test_parse_legacy_with_invalid_uuid(self):
+        """Row is skipped and an error message is returned for invalid UUID."""
+        csv_content = (
+            "date,item_name,quantity,unit_price,total_price,shipping_cost,post_code,uuid\n"
+            "2024-01-15,Widget A,10,5.00,50.00,3.50,SW1A 1AA,not-a-valid-uuid\n"
+        )
+        records, errors = self.parser.parse(csv_content)
+
+        self.assertEqual(len(records), 0)
+        self.assertEqual(len(errors), 1)
+        self.assertIn("invalid uuid", errors[0])
+
+    def test_parse_legacy_without_uuid_column(self):
+        """Parsing without a uuid column still works (uuid is optional)."""
+        csv_content = (
+            "date,item_name,quantity,unit_price,total_price,shipping_cost,post_code\n"
+            "2024-01-15,Widget A,10,5.00,50.00,3.50,SW1A 1AA\n"
+        )
+        records, errors = self.parser.parse(csv_content)
+
+        self.assertEqual(len(records), 1)
+        self.assertEqual(len(errors), 0)
+        self.assertNotIn("uuid", records[0])

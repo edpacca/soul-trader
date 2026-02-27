@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Purchases Report</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 1.5cm;
+        }
+        body {
+            font-family: sans-serif;
+            font-size: 10px;
+            color: #333;
+            background: #fff;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+        .meta {
+            font-size: 9px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 4px 6px;
+            text-align: left;
+        }
+        th {
+            background: #f5f5f5;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background: #fafafa;
+        }
+        .totals-row td {
+            font-weight: bold;
+            background: #eef;
+        }
+    </style>
+</head>
+<body>
+    <h1>Purchases Report</h1>
+    <div class="meta">
+        Date Range: {{ start_date }} to {{ end_date }}<br>
+        Generated: {{ generated_at }}
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                {% for col in columns %}
+                <th>{{ col.label }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in records %}
+            <tr>
+                {% for col in columns %}
+                <td>
+                    {% if col.field == "date" %}{{ record.date }}
+                    {% elif col.field == "item_name" %}{{ record.item_name }}
+                    {% elif col.field == "quantity" %}{{ record.quantity }}
+                    {% elif col.field == "unit_price" %}{{ record.unit_price }}
+                    {% elif col.field == "total_price" %}{{ record.total_price }}
+                    {% elif col.field == "shipping_cost" %}{{ record.shipping_cost }}
+                    {% elif col.field == "source" %}{{ record.source|default:"" }}
+                    {% elif col.field == "currency" %}{{ record.currency }}
+                    {% elif col.field == "notes" %}{{ record.notes }}
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="{{ columns|length }}">No records found</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        {% if records %}
+        <tfoot>
+            <tr class="totals-row">
+                {% for col in columns %}
+                <td>
+                    {% if col.field == "total_price" %}{{ column_totals.total_price }}
+                    {% elif col.field == "shipping_cost" %}{{ column_totals.shipping_cost }}
+                    {% elif col.field == "quantity" %}{{ column_totals.quantity }}
+                    {% elif forloop.first %}Totals
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+        </tfoot>
+        {% endif %}
+    </table>
+</body>
+</html>
