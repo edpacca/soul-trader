@@ -1,3 +1,8 @@
+<h3 style="color:goldenrod;">
+AI vibe-coding disclosure!
+</h3>
+_I developed this as part of some exploratory work using AI assisted tools. I am fairly skeptical of the efficacy of producing a lot of work in a short time frame for production level software. I did create parts of it 'manually' but for the most part it is AI generated. I'm fairly impressed, a little concerned and mildy baffled by how much work was able to get done - but I would not be as happy about the code quality and readability if it was all my own. With that being said, have a nice day and continue..._
+
 # Django Sales & Purchases Dashboard
 
 A skeleton Django application for uploading, querying, and viewing aggregated sales and purchase data. Runs via Docker with PostgreSQL.
