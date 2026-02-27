@@ -1,9 +1,14 @@
+import uuid as uuid_lib
+from datetime import date
+from decimal import Decimal
+
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import IntegrityError
 from django.test import TestCase
 
-from apps.records.models import CSVFormatProfile, CSVUpload, SalesRecord
+from apps.records.models import CSVFormatProfile, CSVUpload, PurchaseRecord, SalesRecord
 
 
 class TestCSVFormatProfileModel(TestCase):
@@ -387,3 +392,44 @@ class TestCSVUploadNewFields(TestCase):
         """file_hash field should have db_index=True."""
         field = CSVUpload._meta.get_field("file_hash")
         self.assertTrue(field.db_index)
+
+
+class TestBaseRecordUUID(TestCase):
+    """Tests for the uuid field on BaseRecord (via SalesRecord/PurchaseRecord)."""
+
+    def _create_record(self, model_class=SalesRecord, **overrides):
+        defaults = {
+            "date": date(2024, 1, 15),
+            "item_name": "Widget",
+            "quantity": 10,
+            "unit_price": Decimal("5.00"),
+            "total_price": Decimal("50.00"),
+            "shipping_cost": Decimal("3.50"),
+            "post_code": "SW1A 1AA",
+        }
+        defaults.update(overrides)
+        return model_class.objects.create(**defaults)
+
+    def test_uuid_auto_generated_on_save(self):
+        """record.uuid is a valid UUID after saving a new record."""
+        record = self._create_record()
+        self.assertIsNotNone(record.uuid)
+        self.assertIsInstance(record.uuid, uuid_lib.UUID)
+
+    def test_uuid_auto_generated_for_purchase(self):
+        record = self._create_record(model_class=PurchaseRecord)
+        self.assertIsNotNone(record.uuid)
+        self.assertIsInstance(record.uuid, uuid_lib.UUID)
+
+    def test_uuid_unique_constraint(self):
+        """Attempting to save two records with the same UUID raises IntegrityError."""
+        fixed_uuid = uuid_lib.uuid4()
+        self._create_record(uuid=fixed_uuid)
+        with self.assertRaises(IntegrityError):
+            self._create_record(uuid=fixed_uuid)
+
+    def test_uuid_unique_across_records(self):
+        """Two records created independently get different UUIDs."""
+        r1 = self._create_record()
+        r2 = self._create_record()
+        self.assertNotEqual(r1.uuid, r2.uuid)

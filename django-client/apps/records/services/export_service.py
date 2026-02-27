@@ -8,6 +8,7 @@ from django.conf import settings
 from apps.records.models import PurchaseRecord, SalesRecord
 
 CSV_COLUMNS = [
+    "uuid",
     "date",
     "item_name",
     "quantity",
@@ -16,7 +17,7 @@ CSV_COLUMNS = [
     "shipping_cost",
     "post_code",
     "currency",
-    "id",
+    "source",
 ]
 
 
@@ -30,9 +31,9 @@ def export_records_as_csv(record_type: str) -> str:
         CSV content as a string with headers matching the canonical column order.
     """
     querysets = []
-    if record_type in ("sales", "all"):
+    if record_type in ("sales"):
         querysets.append(SalesRecord.objects.all())
-    if record_type in ("purchase", "all"):
+    if record_type in ("purchase"):
         querysets.append(PurchaseRecord.objects.all())
 
     output = io.StringIO()
@@ -42,6 +43,7 @@ def export_records_as_csv(record_type: str) -> str:
     for qs in querysets:
         for record in qs.order_by("date"):
             writer.writerow([
+                str(record.uuid),
                 record.date.strftime("%Y-%m-%d"),
                 record.item_name,
                 record.quantity,
@@ -50,7 +52,7 @@ def export_records_as_csv(record_type: str) -> str:
                 str(record.shipping_cost),
                 record.post_code,
                 record.currency,
-                record.id
+                record.source.name if record.source else "",
             ])
 
     return output.getvalue()

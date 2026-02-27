@@ -1,3 +1,5 @@
+import uuid as uuid_lib
+
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -16,6 +18,7 @@ class Source(models.Model):
 
 
 class BaseRecord(models.Model):
+    uuid = models.UUIDField(default=uuid_lib.uuid4, editable=False, unique=True, db_index=True)
     date = models.DateField()
     item_name = models.CharField(max_length=255)
     quantity = models.PositiveIntegerField()
@@ -160,7 +163,7 @@ class CSVFormatProfile(models.Model):
 
     def _get_model_fields(self):
         model_class = SalesRecord if self.record_type == "sales" else PurchaseRecord
-        excluded = {"id", "created_at", "source"}
+        excluded = {"id", "created_at"}
         return {
             f.name
             for f in model_class._meta.get_fields()
@@ -169,7 +172,7 @@ class CSVFormatProfile(models.Model):
 
     def _get_required_fields(self):
         model_class = SalesRecord if self.record_type == "sales" else PurchaseRecord
-        excluded = {"id", "created_at", "source"}
+        excluded = {"id", "created_at", "source", "uuid"}
         required = set()
         for f in model_class._meta.get_fields():
             if not hasattr(f, "column") or f.name in excluded:

@@ -26,10 +26,10 @@ class SourceAdmin(admin.ModelAdmin):
 
 
 class BaseRecordAdmin(admin.ModelAdmin):
-    list_display = ("date", "item_name", "quantity", "unit_price", "total_price", "shipping_cost", "source", "post_code", "currency", "notes")
+    list_display = ("id", "uuid", "date", "item_name", "quantity", "unit_price", "total_price", "shipping_cost", "source", "post_code", "currency", "notes")
     list_filter = ("date", "currency")
     search_fields = ("item_name", "source", "post_code", "notes")
-    readonly_fields = ("created_at",)
+    readonly_fields = ("id", "uuid", "created_at",)
 
 @admin.register(SalesRecord)
 class SalesRecordAdmin(BaseRecordAdmin):
@@ -75,6 +75,11 @@ class CSVUploadForm(forms.ModelForm):
         required=False,
         label="Confirm duplicate upload",
         help_text="Check this box to proceed if this file has already been uploaded.",
+    )
+    restore_from_backup = forms.BooleanField(
+        required=False,
+        label="Restore from backup",
+        help_text="Check this box if importing a backup CSV. The source dropdown will be ignored and source values from the CSV will be used instead. Duplicate UUIDs will be skipped.",
     )
 
     class Meta:
@@ -154,7 +159,10 @@ class CSVUploadAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
         if not change:
-            self._process_csv(request, obj, form)
+            if form.cleaned_data.get('restore_from_backup'):
+                self._process_backup_csv(request, obj, form)
+            else:
+                self._process_csv(request, obj, form)
 
     @admin.action(description="Delete all records from selected CSV uploads")
     def delete_imported_records(self, request, queryset):
@@ -206,7 +214,12 @@ class CSVUploadAdmin(admin.ModelAdmin):
         model_class = SalesRecord if obj.record_type == "sales" else PurchaseRecord
         created_ids = []
         created = 0
+        skipped = 0
         for record_data in records:
+            if 'uuid' in record_data:
+                if model_class.objects.filter(uuid=record_data['uuid']).exists():
+                    skipped += 1
+                    continue
             if obj.source:
                 record_data['source'] = obj.source
             record = model_class.objects.create(**record_data)
@@ -225,16 +238,112 @@ class CSVUploadAdmin(admin.ModelAdmin):
         obj.errors = "\n".join(errors) if errors else ""
         obj.save()
 
-        if errors:
+        if errors or skipped:
+            parts = [f"Imported {created} records"]
+            if skipped:
+                parts.append(f"{skipped} skipped (duplicate UUID)")
+            if errors:
+                parts.append(f"{len(errors)} error(s)")
             self.message_user(
                 request,
-                f"Imported {created} records with {len(errors)} error(s). Check the upload details for more info.",
+                f"{', '.join(parts)}. Check the upload details for more info.",
                 messages.WARNING,
             )
         else:
             self.message_user(
                 request,
                 f"Successfully imported {created} {obj.record_type} records.",
+                messages.SUCCESS,
+            )
+
+    def _process_backup_csv(self, request, obj, form):
+        """Process a backup CSV file. Uses UUID for deduplication and imports
+        the source column from the CSV instead of using the source dropdown."""
+        if obj.format_profile:
+            parser = DefaultCSVParser(profile=obj.format_profile)
+        else:
+            parser = DefaultCSVParser()
+        uploaded_file = form.cleaned_data['file']
+        obj.file_name = uploaded_file.name
+        try:
+            file_content = uploaded_file.read().decode("utf-8-sig")
+        except UnicodeDecodeError:
+            self.message_user(request, "File encoding error. Please upload a UTF-8 encoded CSV.", messages.ERROR)
+            obj.delete()
+            return
+
+        file_hash = hashlib.sha256(file_content.encode()).hexdigest()
+
+        # Check for duplicate uploads
+        existing = CSVUpload.objects.filter(
+            file_hash=file_hash,
+            record_type=obj.record_type
+        ).exclude(pk=obj.pk).first()
+
+        if existing and not form.cleaned_data.get("confirm_duplicate"):
+            self.message_user(
+                request,
+                f"This file appears to be a duplicate of an upload from {existing.uploaded_at}. "
+                f"To proceed, re-upload with the 'Confirm duplicate upload' checkbox checked.",
+                messages.ERROR,
+            )
+            obj.delete()
+            return
+
+        records, errors = parser.parse(file_content)
+
+        model_class = SalesRecord if obj.record_type == "sales" else PurchaseRecord
+        created_ids = []
+        created = 0
+        skipped = 0
+        # Cache for source lookups to avoid repeated DB queries
+        source_cache = {}
+        for record_data in records:
+            # UUID deduplication: skip records whose UUID already exists
+            if 'uuid' in record_data:
+                if model_class.objects.filter(uuid=record_data['uuid']).exists():
+                    skipped += 1
+                    continue
+
+            # Resolve source from CSV column instead of the dropdown
+            if 'source_name' in record_data:
+                source_name = record_data.pop('source_name')
+                if source_name not in source_cache:
+                    source_obj, _ = Source.objects.get_or_create(name=source_name)
+                    source_cache[source_name] = source_obj
+                record_data['source'] = source_cache[source_name]
+
+            record = model_class.objects.create(**record_data)
+            created_ids.append(record.id)
+            created += 1
+
+        if created == 0 and skipped == 0:
+            error_msg = "\n".join(errors) if errors else "No records could be imported."
+            self.message_user(request, f"Upload failed: {error_msg}", messages.ERROR)
+            obj.delete()
+            return
+
+        obj.rows_imported = created
+        obj.imported_record_ids = created_ids
+        obj.file_hash = file_hash
+        obj.errors = "\n".join(errors) if errors else ""
+        obj.save()
+
+        if errors or skipped:
+            parts = [f"Imported {created} records"]
+            if skipped:
+                parts.append(f"{skipped} skipped (duplicate UUID)")
+            if errors:
+                parts.append(f"{len(errors)} error(s)")
+            self.message_user(
+                request,
+                f"{', '.join(parts)}. Check the upload details for more info.",
+                messages.WARNING,
+            )
+        else:
+            self.message_user(
+                request,
+                f"Successfully restored {created} {obj.record_type} records from backup.",
                 messages.SUCCESS,
             )
 
@@ -372,7 +481,11 @@ class CSVFormatProfileAdmin(admin.ModelAdmin):
         for record in records[:10]:
             row = {}
             for field in header_fields:
-                val = record.get(field, "")
+                # source is stored as source_name in parsed records
+                if field == "source":
+                    val = record.get("source_name", "")
+                else:
+                    val = record.get(field, "")
                 row[field] = str(val) if val is not None else ""
             preview.append(row)
 

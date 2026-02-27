@@ -1,6 +1,7 @@
 import csv
 import io
 import re
+import uuid as uuid_lib
 from abc import ABC, abstractmethod
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
@@ -39,7 +40,7 @@ class DefaultCSVParser(CSVParser):
         "shipping_cost",
         "post_code",
     ]
-    OPTIONAL_FIELDS = ["currency"]
+    OPTIONAL_FIELDS = ["currency", "uuid", "source"]
     DATE_FORMATS = ["%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y"]
 
     def parse(self, file_content: str) -> tuple[list[dict[str, Any]], list[str]]:
@@ -132,6 +133,15 @@ class DefaultCSVParser(CSVParser):
                             parsed["post_code"] = raw_value
                 elif field_name == "currency":
                     parsed["currency"] = raw_value if raw_value else "GBP"
+                elif field_name == "uuid":
+                    if raw_value:
+                        try:
+                            parsed["uuid"] = uuid_lib.UUID(raw_value)
+                        except ValueError:
+                            row_errors.append("invalid uuid")
+                elif field_name == "source":
+                    if raw_value:
+                        parsed["source_name"] = raw_value
                 else:
                     parsed[field_name] = raw_value
 
@@ -208,6 +218,17 @@ class DefaultCSVParser(CSVParser):
 
             currency = normalised_row.get("currency", "").strip()
             parsed["currency"] = currency if currency else "GBP"
+
+            uuid_raw = normalised_row.get("uuid", "").strip()
+            if uuid_raw:
+                try:
+                    parsed["uuid"] = uuid_lib.UUID(uuid_raw)
+                except ValueError:
+                    row_errors.append("invalid uuid")
+
+            source_raw = normalised_row.get("source", "").strip()
+            if source_raw:
+                parsed["source_name"] = source_raw
 
             if row_errors:
                 errors.append(f"Row {row_num}: {'; '.join(row_errors)}")

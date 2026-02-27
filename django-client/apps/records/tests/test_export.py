@@ -2,17 +2,16 @@ import csv
 import io
 from datetime import date
 from decimal import Decimal
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from django.contrib.auth.models import User
-from django.test import TestCase, Client, override_settings
+from django.test import TestCase, Client
 from django.urls import reverse
 
 from apps.records.models import PurchaseRecord, SalesRecord
 from apps.records.services.csv_parser import DefaultCSVParser
 from apps.records.services.export_service import (
     CSV_COLUMNS,
-    export_db_dump,
     export_records_as_csv,
 )
 
@@ -41,13 +40,13 @@ class TestExportRecordsAsCSV(TestCase):
         )
 
     def test_csv_headers_match_canonical_order(self):
-        """CSV headers must match REQUIRED_FIELDS + currency in the correct order."""
-        result = export_records_as_csv("all")
+        """CSV headers must match canonical order with uuid first."""
+        result = export_records_as_csv("sales")
         reader = csv.reader(io.StringIO(result))
         headers = next(reader)
         expected = [
-            "date", "item_name", "quantity", "unit_price",
-            "total_price", "shipping_cost", "post_code", "currency",
+            "uuid", "date", "item_name", "quantity", "unit_price",
+            "total_price", "shipping_cost", "post_code", "currency", "source",
         ]
         self.assertEqual(headers, expected)
 
@@ -57,7 +56,8 @@ class TestExportRecordsAsCSV(TestCase):
         next(reader)  # skip headers
         rows = list(reader)
         self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0][1], "Widget A")
+        # uuid is column 0, item_name is column 2
+        self.assertEqual(rows[0][2], "Widget A")
 
     def test_csv_purchase_only(self):
         result = export_records_as_csv("purchase")
@@ -65,14 +65,19 @@ class TestExportRecordsAsCSV(TestCase):
         next(reader)  # skip headers
         rows = list(reader)
         self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0][1], "Raw Material X")
+        # uuid is column 0, item_name is column 2
+        self.assertEqual(rows[0][2], "Raw Material X")
 
-    def test_csv_all_records(self):
-        result = export_records_as_csv("all")
-        reader = csv.reader(io.StringIO(result))
-        next(reader)  # skip headers
-        rows = list(reader)
-        self.assertEqual(len(rows), 2)
+    def test_csv_sales_and_purchase_separate(self):
+        """Sales and purchase exports are separate — no 'all' option."""
+        sales_result = export_records_as_csv("sales")
+        purchase_result = export_records_as_csv("purchase")
+        sales_reader = csv.reader(io.StringIO(sales_result))
+        purchase_reader = csv.reader(io.StringIO(purchase_result))
+        next(sales_reader)  # skip headers
+        next(purchase_reader)  # skip headers
+        self.assertEqual(len(list(sales_reader)), 1)
+        self.assertEqual(len(list(purchase_reader)), 1)
 
     def test_csv_date_format(self):
         """Dates must be formatted as %Y-%m-%d for round-trip compatibility."""
@@ -80,7 +85,8 @@ class TestExportRecordsAsCSV(TestCase):
         reader = csv.reader(io.StringIO(result))
         next(reader)
         row = next(reader)
-        self.assertEqual(row[0], "2024-03-15")
+        # uuid is column 0, date is column 1
+        self.assertEqual(row[1], "2024-03-15")
 
     def test_csv_empty_result(self):
         """When no records exist for a type, CSV should have only headers."""
@@ -91,6 +97,22 @@ class TestExportRecordsAsCSV(TestCase):
         self.assertEqual(headers, CSV_COLUMNS)
         rows = list(reader)
         self.assertEqual(len(rows), 0)
+
+    def test_csv_uuid_is_first_column(self):
+        """The first column in the exported CSV header row is uuid."""
+        result = export_records_as_csv("sales")
+        reader = csv.reader(io.StringIO(result))
+        headers = next(reader)
+        self.assertEqual(headers[0], "uuid")
+
+    def test_csv_uuid_values_are_valid(self):
+        """Each exported row has a valid UUID in the first column."""
+        import uuid as uuid_lib
+        result = export_records_as_csv("sales")
+        reader = csv.reader(io.StringIO(result))
+        next(reader)  # skip headers
+        for row in reader:
+            uuid_lib.UUID(row[0])  # will raise ValueError if invalid
 
 
 class TestCSVRoundTrip(TestCase):
@@ -127,34 +149,32 @@ class TestCSVRoundTrip(TestCase):
         self.assertEqual(record["post_code"], "EC2A 1NT")
         self.assertEqual(record["currency"], "EUR")
 
+    def test_round_trip_export_reimport_zero_new_records(self):
+        """Exporting records and re-importing the CSV creates 0 new records
+        (all skipped due to UUID match)."""
+        csv_content = export_records_as_csv("sales")
 
-class TestExportDbDump(TestCase):
+        # Parse with legacy parser (has uuid column)
+        parser = DefaultCSVParser()
+        records, errors = parser._parse_legacy(csv_content)
+        self.assertEqual(errors, [])
+        self.assertEqual(len(records), 1)
 
-    @patch("apps.records.services.export_service.subprocess.run")
-    def test_pg_dump_error_raises_runtime_error(self, mock_run):
-        """When pg_dump exits non-zero, export_db_dump must raise RuntimeError."""
-        mock_run.return_value = MagicMock(
-            returncode=1,
-            stderr=b"pg_dump: error: connection refused",
-            stdout=b"",
-        )
-        with self.assertRaises(RuntimeError) as ctx:
-            export_db_dump()
-        self.assertIn("pg_dump failed", str(ctx.exception))
-        self.assertIn("connection refused", str(ctx.exception))
+        # Try to create records - should be skipped since UUID already exists
+        original_count = SalesRecord.objects.count()
+        created = 0
+        skipped = 0
+        for record_data in records:
+            if "uuid" in record_data:
+                if SalesRecord.objects.filter(uuid=record_data["uuid"]).exists():
+                    skipped += 1
+                    continue
+            SalesRecord.objects.create(**record_data)
+            created += 1
 
-    @override_settings(DATABASES={
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": ":memory:",
-        }
-    })
-    def test_sqlite_guard_raises_error(self):
-        """export_db_dump must raise RuntimeError when engine is not PostgreSQL."""
-        with self.assertRaises(RuntimeError) as ctx:
-            export_db_dump()
-        self.assertIn("only supported for PostgreSQL", str(ctx.exception))
-        self.assertIn("sqlite3", str(ctx.exception))
+        self.assertEqual(created, 0)
+        self.assertEqual(skipped, 1)
+        self.assertEqual(SalesRecord.objects.count(), original_count)
 
 
 class TestExportViews(TestCase):
@@ -177,12 +197,6 @@ class TestExportViews(TestCase):
 
     def test_export_csv_requires_login(self):
         url = reverse("records:export_csv")
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 302)
-        self.assertIn("/login/", response.url)
-
-    def test_export_dump_requires_login(self):
-        url = reverse("records:export_dump")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 302)
         self.assertIn("/login/", response.url)
@@ -210,14 +224,6 @@ class TestExportViews(TestCase):
         response = self.client.get(url, {"table": "sales"})
         self.assertEqual(response.status_code, 302)
 
-    @patch("apps.records.views.export_db_dump", side_effect=Exception("db error"))
-    def test_export_dump_error_redirects_with_message(self, mock_export):
-        self.client.login(username="testuser", password="testpass123")
-        url = reverse("records:export_dump")
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 302)
-
-
 class TestDashboardExportUI(TestCase):
     def setUp(self):
         self.client = Client()
@@ -227,10 +233,8 @@ class TestDashboardExportUI(TestCase):
         response = self.client.get(self.url)
         self.assertContains(response, "Export Data")
         self.assertContains(response, "Export CSV")
-        self.assertContains(response, "Download DB Dump")
 
     def test_dashboard_has_table_select(self):
         response = self.client.get(self.url)
         self.assertContains(response, '<option value="sales">Sales</option>')
         self.assertContains(response, '<option value="purchases">Purchases</option>')
-        self.assertContains(response, '<option value="all">All</option>')

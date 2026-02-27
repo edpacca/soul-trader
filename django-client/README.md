@@ -57,6 +57,7 @@ The CSV must include a header row with these columns:
 | `shipping_cost` | Yes | Decimal number |
 | `post_code` | Yes | Postal/ZIP code |
 | `currency` | No | 3-letter currency code (defaults to GBP) |
+| `uuid` | No | UUID for deduplication on re-import (auto-generated if absent) |
 
 Sample CSV files are provided in the `sample_data/` directory.
 
