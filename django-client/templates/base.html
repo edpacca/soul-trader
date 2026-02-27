@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Sales & Purchases Dashboard{% endblock %}</title>
+    <meta name="description" content="Sales and Purchases Dashboard for managing records and reports">
+    <meta name="keywords" content="sales, purchases, dashboard, records, reports">
+    <title>{% block title %}Sales & Purchases Dashboard{% endblock title %}</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
@@ -14,11 +16,12 @@
             <a href="{% url 'records:sales_detail' %}">Sales</a>
             <a href="{% url 'records:purchases_detail' %}">Purchases</a>
             <a href="{% url 'records:notes_list' %}">Notes</a>
+            <a href="{% url 'records:preset_list' %}">Reports</a>
             <a href="{% url 'admin:index' %}">Admin</a>
         </nav>
     </header>
     <main>
-        {% block content %}{% endblock %}
+        {% block content %}{% endblock content %}
     </main>
 </body>
 </html>

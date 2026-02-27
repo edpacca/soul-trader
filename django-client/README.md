@@ -57,8 +57,11 @@ The CSV must include a header row with these columns:
 | `shipping_cost` | Yes | Decimal number |
 | `post_code` | Yes | Postal/ZIP code |
 | `currency` | No | 3-letter currency code (defaults to GBP) |
+| `uuid` | No | UUID for deduplication on re-import (auto-generated if absent) |
 
 Sample CSV files are provided in the `sample_data/` directory.
+
+
 
 ## Main Dashboard
 
@@ -170,3 +173,51 @@ The aggregation logic is isolated in `AggregationService` (`apps/records/service
 - **Services** (`services/`): Business logic (parsing, aggregation)
 - **Views** (`views.py`): HTTP request handling, delegates to services
 - **Admin** (`admin.py`): Admin interface, delegates CSV processing to services
+
+## Restoring from a Database Dump
+
+> **Note:** This requires Docker and Docker Compose. The dump must have been created using the DB Dump export feature (PostgreSQL only).
+
+### Steps
+
+1. Start the database service only:
+
+   ```bash
+   docker-compose up -d db
+   ```
+
+2. Drop and recreate the database to avoid conflicts with existing data:
+
+   ```bash
+   docker-compose exec db psql -U postgres -c "DROP DATABASE IF EXISTS django_client; CREATE DATABASE django_client;"
+   ```
+
+3. Restore the dump file:
+
+   ```bash
+   cat db_dump_YYYY-MM-DD.sql | docker-compose exec -T db psql -U postgres -d django_client
+   ```
+
+   Replace `db_dump_YYYY-MM-DD.sql` with the filename of your downloaded dump.
+
+4. Start the web service:
+
+   ```bash
+   docker-compose up web
+   ```
+
+   The application will be available at http://localhost:8000/
+
+5. If needed, create a superuser:
+
+   ```bash
+   docker-compose exec web python manage.py createsuperuser
+   ```
+
+> **Note:** The dump includes all Django tables (auth, sessions, migrations, and application data), so you do not need to run migrations after restoring. If the dump was taken from a setup with a superuser, that account will be restored too.
+
+### Notes
+
+- If you want a completely clean slate, you can run `docker-compose down -v` before step 1 instead of the drop/recreate in step 2 — this wipes the `postgres_data` Docker volume entirely.
+- The web service automatically runs `python manage.py migrate` on startup, but since the dump already contains the migrations table, this is a no-op.
+

@@ -1,0 +1,40 @@
+<section class="report-controls">
+    <div class="label-select-button-grid">
+        <label for="report-preset-select">Report:</label>
+        <select id="report-preset-select">
+            <option value="current">Current Filters</option>
+            {% for preset in presets %}<option value="{{ preset.id }}">{{ preset.name }}</option>{% endfor %}
+        </select>
+        <button type="button" id="generate-report-btn">Generate Report</button>
+    </div>
+</section>
+<script>
+(function () {
+    var select = document.getElementById('report-preset-select');
+    var btn = document.getElementById('generate-report-btn');
+    var reportType = '{{ report_type }}';
+
+    var pdfUrlMap = {
+        'sales': '/sales/pdf/',
+        'purchases': '/purchases/pdf/',
+        'combined': '/business/pdf/'
+    };
+
+    btn.addEventListener('click', function () {
+        var selected = select.value;
+
+        if (selected === 'current') {
+            var pdfBase = pdfUrlMap[reportType];
+            var queryString = window.location.search;
+            /* For detail pages, forward the entire query string.
+               For the dashboard (combined), the business PDF endpoint
+               accepts the same sales_start_date / purchases_start_date params. */
+            window.open(pdfBase + queryString, '_blank');
+        } else {
+            /* Navigate to the preset_run endpoint which resolves the
+               time window server-side and redirects to the PDF. */
+            window.open('/reports/' + selected + '/run/', '_blank');
+        }
+    });
+})();
+</script>

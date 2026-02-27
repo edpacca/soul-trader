@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Business Report</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 1.5cm;
+        }
+        body {
+            font-family: sans-serif;
+            font-size: 11px;
+            color: #333;
+            background: #fff;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+        .meta {
+            font-size: 9px;
+            color: #666;
+            margin-bottom: 16px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 6px 10px;
+            text-align: left;
+        }
+        th {
+            background: #f5f5f5;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background: #fafafa;
+        }
+        h2 {
+            font-size: 14px;
+            margin-top: 18px;
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Business Summary Report</h1>
+    <div class="meta">
+        Sales Date Range: {{ sales_start_date }} to {{ sales_end_date }}<br>
+        Purchases Date Range: {{ purchases_start_date }} to {{ purchases_end_date }}<br>
+        Generated: {{ generated_at }}
+    </div>
+
+    <h2>Financial Summary</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Metric</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Total Sales</td>
+                <td>{{ total_sales }}</td>
+            </tr>
+            <tr>
+                <td>Total Purchases</td>
+                <td>{{ total_purchases }}</td>
+            </tr>
+            <tr>
+                <td>Net Profit</td>
+                <td>{{ net_profit }}</td>
+            </tr>
+            <tr>
+                <td>Sales Count</td>
+                <td>{{ sales_count }}</td>
+            </tr>
+            <tr>
+                <td>Purchases Count</td>
+                <td>{{ purchases_count }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>Sales Totals</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Metric</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Total Price</td>
+                <td>{{ sales_totals.total_price }}</td>
+            </tr>
+            <tr>
+                <td>Shipping Cost</td>
+                <td>{{ sales_totals.shipping_cost }}</td>
+            </tr>
+            <tr>
+                <td>Quantity</td>
+                <td>{{ sales_totals.quantity }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>Purchases Totals</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Metric</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Total Price</td>
+                <td>{{ purchases_totals.total_price }}</td>
+            </tr>
+            <tr>
+                <td>Shipping Cost</td>
+                <td>{{ purchases_totals.shipping_cost }}</td>
+            </tr>
+            <tr>
+                <td>Quantity</td>
+                <td>{{ purchases_totals.quantity }}</td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>

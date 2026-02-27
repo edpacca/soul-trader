@@ -56,4 +56,34 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         }
     }
+
+    // Restore from backup checkbox: visually disable source dropdown when checked
+    var restoreCheckbox = document.getElementById("id_restore_from_backup");
+    if (restoreCheckbox && sourceSelect) {
+        function toggleSourceDropdown() {
+            if (restoreCheckbox.checked) {
+                sourceSelect.style.opacity = "0.5";
+                sourceSelect.style.pointerEvents = "none";
+                // Add a note next to the source field
+                var note = document.getElementById("restore-source-note");
+                if (!note) {
+                    note = document.createElement("span");
+                    note.id = "restore-source-note";
+                    note.style.color = "#999";
+                    note.style.marginLeft = "8px";
+                    note.style.fontSize = "0.85em";
+                    note.textContent = "(ignored — source will be read from CSV)";
+                    sourceSelect.parentNode.appendChild(note);
+                }
+                note.style.display = "inline";
+            } else {
+                sourceSelect.style.opacity = "1";
+                sourceSelect.style.pointerEvents = "auto";
+                var note = document.getElementById("restore-source-note");
+                if (note) note.style.display = "none";
+            }
+        }
+        restoreCheckbox.addEventListener("change", toggleSourceDropdown);
+        toggleSourceDropdown();
+    }
 });

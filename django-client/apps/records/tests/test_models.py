@@ -1,9 +1,14 @@
+import uuid as uuid_lib
+from datetime import date
+from decimal import Decimal
+
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import IntegrityError
 from django.test import TestCase
 
-from apps.records.models import CSVFormatProfile, CSVUpload, SalesRecord
+from apps.records.models import CSVFormatProfile, CSVUpload, PurchaseRecord, SalesRecord
 
 
 class TestCSVFormatProfileModel(TestCase):
@@ -30,19 +35,21 @@ class TestCSVFormatProfileModel(TestCase):
         return CSVFormatProfile(**defaults)
 
     def test_create_valid_sales_profile(self):
+        initial_count = CSVFormatProfile.objects.count()
         profile = self._build_profile()
         profile.full_clean()
         profile.save()
-        self.assertEqual(CSVFormatProfile.objects.count(), 1)
+        self.assertEqual(CSVFormatProfile.objects.count(), initial_count + 1)
         self.assertEqual(profile.name, "Test Profile")
         self.assertEqual(profile.record_type, "sales")
         self.assertTrue(profile.is_active)
 
     def test_create_valid_purchase_profile(self):
+        initial_count = CSVFormatProfile.objects.count()
         profile = self._build_profile(record_type="purchase")
         profile.full_clean()
         profile.save()
-        self.assertEqual(CSVFormatProfile.objects.count(), 1)
+        self.assertEqual(CSVFormatProfile.objects.count(), initial_count + 1)
         self.assertEqual(profile.record_type, "purchase")
 
     def test_default_delimiter(self):
@@ -137,6 +144,7 @@ class TestCSVFormatProfileModel(TestCase):
         self.assertGreaterEqual(profile.updated_at, first_updated)
 
     def test_ordering_by_name(self):
+        CSVFormatProfile.objects.all().delete()
         self._build_profile(name="Zebra").save()
         self._build_profile(name="Alpha").save()
         profiles = list(CSVFormatProfile.objects.values_list("name", flat=True))
@@ -194,7 +202,7 @@ class TestCSVUploadFormatProfile(TestCase):
 
     def test_format_profile_nullable(self):
         upload = CSVUpload.objects.create(
-            file="csv_uploads/test.csv",
+            file_name="test.csv",
             record_type="sales",
         )
         self.assertIsNone(upload.format_profile)
@@ -202,7 +210,7 @@ class TestCSVUploadFormatProfile(TestCase):
     def test_format_profile_assignment(self):
         profile = self._create_profile()
         upload = CSVUpload.objects.create(
-            file="csv_uploads/test.csv",
+            file_name="test.csv",
             record_type="sales",
             format_profile=profile,
         )
@@ -212,7 +220,7 @@ class TestCSVUploadFormatProfile(TestCase):
     def test_format_profile_set_null_on_delete(self):
         profile = self._create_profile()
         upload = CSVUpload.objects.create(
-            file="csv_uploads/test.csv",
+            file_name="test.csv",
             record_type="sales",
             format_profile=profile,
         )
@@ -223,12 +231,12 @@ class TestCSVUploadFormatProfile(TestCase):
     def test_format_profile_reverse_relation(self):
         profile = self._create_profile()
         CSVUpload.objects.create(
-            file="csv_uploads/test1.csv",
+            file_name="test1.csv",
             record_type="sales",
             format_profile=profile,
         )
         CSVUpload.objects.create(
-            file="csv_uploads/test2.csv",
+            file_name="test2.csv",
             record_type="sales",
             format_profile=profile,
         )
@@ -309,13 +317,12 @@ class TestCSVUploadAdminForm(TestCase):
 
     def test_admin_edit_existing_upload_without_profile_allowed(self):
         upload = CSVUpload.objects.create(
-            file="csv_uploads/test.csv",
+            file_name="test.csv",
             record_type="sales",
         )
         response = self.client.post(
             f"/admin/records/csvupload/{upload.pk}/change/",
             {
-                "file": upload.file,
                 "record_type": "sales",
                 "format_profile": "",
             },
@@ -339,14 +346,14 @@ class TestCSVUploadNewFields(TestCase):
 
     def test_imported_record_ids_default_empty_list(self):
         upload = CSVUpload.objects.create(
-            file="csv_uploads/test.csv",
+            file_name="test.csv",
             record_type="sales",
         )
         self.assertEqual(upload.imported_record_ids, [])
 
     def test_imported_record_ids_stores_integers(self):
         upload = CSVUpload.objects.create(
-            file="csv_uploads/test.csv",
+            file_name="test.csv",
             record_type="sales",
             imported_record_ids=[1, 2, 3],
         )
@@ -356,7 +363,7 @@ class TestCSVUploadNewFields(TestCase):
     def test_imported_record_ids_stores_strings(self):
         """Should work with UUID-like string IDs too."""
         upload = CSVUpload.objects.create(
-            file="csv_uploads/test.csv",
+            file_name="test.csv",
             record_type="sales",
             imported_record_ids=["abc-123", "def-456"],
         )
@@ -365,7 +372,7 @@ class TestCSVUploadNewFields(TestCase):
 
     def test_file_hash_default_blank(self):
         upload = CSVUpload.objects.create(
-            file="csv_uploads/test.csv",
+            file_name="test.csv",
             record_type="sales",
         )
         self.assertEqual(upload.file_hash, "")
@@ -373,7 +380,7 @@ class TestCSVUploadNewFields(TestCase):
     def test_file_hash_stores_64_char_hex(self):
         hash_value = "a" * 64
         upload = CSVUpload.objects.create(
-            file="csv_uploads/test.csv",
+            file_name="test.csv",
             record_type="sales",
             file_hash=hash_value,
         )
@@ -385,3 +392,44 @@ class TestCSVUploadNewFields(TestCase):
         """file_hash field should have db_index=True."""
         field = CSVUpload._meta.get_field("file_hash")
         self.assertTrue(field.db_index)
+
+
+class TestBaseRecordUUID(TestCase):
+    """Tests for the uuid field on BaseRecord (via SalesRecord/PurchaseRecord)."""
+
+    def _create_record(self, model_class=SalesRecord, **overrides):
+        defaults = {
+            "date": date(2024, 1, 15),
+            "item_name": "Widget",
+            "quantity": 10,
+            "unit_price": Decimal("5.00"),
+            "total_price": Decimal("50.00"),
+            "shipping_cost": Decimal("3.50"),
+            "post_code": "SW1A 1AA",
+        }
+        defaults.update(overrides)
+        return model_class.objects.create(**defaults)
+
+    def test_uuid_auto_generated_on_save(self):
+        """record.uuid is a valid UUID after saving a new record."""
+        record = self._create_record()
+        self.assertIsNotNone(record.uuid)
+        self.assertIsInstance(record.uuid, uuid_lib.UUID)
+
+    def test_uuid_auto_generated_for_purchase(self):
+        record = self._create_record(model_class=PurchaseRecord)
+        self.assertIsNotNone(record.uuid)
+        self.assertIsInstance(record.uuid, uuid_lib.UUID)
+
+    def test_uuid_unique_constraint(self):
+        """Attempting to save two records with the same UUID raises IntegrityError."""
+        fixed_uuid = uuid_lib.uuid4()
+        self._create_record(uuid=fixed_uuid)
+        with self.assertRaises(IntegrityError):
+            self._create_record(uuid=fixed_uuid)
+
+    def test_uuid_unique_across_records(self):
+        """Two records created independently get different UUIDs."""
+        r1 = self._create_record()
+        r2 = self._create_record()
+        self.assertNotEqual(r1.uuid, r2.uuid)

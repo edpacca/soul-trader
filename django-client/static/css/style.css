@@ -191,6 +191,10 @@ input[type="checkbox"] {
 	margin-top: 1.5rem;
 }
 
+td.detail-buttons {
+	margin-top: 0;
+}
+
 .detail-button {
 	background-color: var(--bg1);
 	border: 1px solid var(--border-color);
@@ -205,6 +209,14 @@ input[type="checkbox"] {
 	font-weight: 500;
 }
 
+.detail-button.small {
+	font-size: 0.9rem;
+}
+
+a.detail-button.small {
+	padding: 0.25rem 1.5rem;
+}
+
 .detail-button:hover {
 	background-color: var(--accent-hover);
 }
@@ -212,7 +224,11 @@ input[type="checkbox"] {
 .table-controls {
 	display: flex;
 	justify-content: space-between;
-	align-items: baseline;
+	align-items: center;
+}
+
+.table-controls h2 {
+	margin-bottom: 0;
 }
 
 /* Notes modal */
@@ -278,4 +294,101 @@ input[type="checkbox"] {
 	color: var(--highlight);
 }
 
+.flex-row {
+	display: flex;
+	flex-direction: row;
+	gap: 1em;
+}
 
+/* Messages */
+.messages {
+	margin-bottom: 1rem;
+}
+
+.message {
+	padding: 0.75rem 1rem;
+	border-radius: 4px;
+	margin-bottom: 0.5rem;
+	font-size: 0.95rem;
+}
+
+.message.error {
+	background-color: rgba(255, 80, 80, 0.15);
+	border: 1px solid var(--warning);
+	color: var(--warning);
+}
+
+/* Export section */
+.export-section {
+	background: var(--bg1);
+	padding: 1.5rem;
+	border-radius: 8px;
+	margin-bottom: 2rem;
+}
+
+.export-controls {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	flex-wrap: wrap;
+}
+
+.export-form {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.export-form select {
+	padding: 0.5rem 1.5rem;
+	background-color: var(--bg1);
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	color: var(--text);
+}
+
+/* Multi-select styling */
+select[multiple] {
+	padding: 0.5rem;
+	background-color: var(--bg1);
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	color: var(--text);
+}
+
+select[multiple] option {
+	padding: 0.4rem 0.5rem;
+	background-color: var(--bg1);
+	color: var(--text);
+}
+
+select[multiple] option:checked {
+	background-color: var(--accent-hover);
+	color: var(--text);
+}
+
+select[multiple] option:hover {
+	background-color: var(--bg2);
+}
+
+.report-controls {
+	margin: 1rem 0;
+}
+
+.report-controls select {
+	padding: 0.5rem 1.5rem;
+	background-color: var(--bg1);
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	color: var(--text);
+}
+
+.report-controls label {
+	margin-right: 1em;
+}
+
+.label-select-button-grid {
+	display: grid;
+	grid-template-columns: 5em 11em 11em;
+	gap: 1em;
+}

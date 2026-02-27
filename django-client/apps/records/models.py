@@ -1,3 +1,5 @@
+import uuid as uuid_lib
+
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -16,6 +18,7 @@ class Source(models.Model):
 
 
 class BaseRecord(models.Model):
+    uuid = models.UUIDField(default=uuid_lib.uuid4, editable=False, unique=True, db_index=True)
     date = models.DateField()
     item_name = models.CharField(max_length=255)
     quantity = models.PositiveIntegerField()
@@ -54,13 +57,40 @@ class PurchaseRecord(BaseRecord):
         verbose_name_plural = "Purchase Records"
 
 
+class ReportPreset(models.Model):
+    REPORT_TYPE_CHOICES = [
+        ("sales", "Sales"),
+        ("purchases", "Purchases"),
+        ("combined", "Business / Combined"),
+    ]
+    TIME_WINDOW_CHOICES = [
+        ("last_7_days", "Last 7 Days"),
+        ("last_30_days", "Last 30 Days"),
+        ("this_month", "This Month"),
+        ("this_year", "This Year"),
+        ("all_time", "All Time"),
+    ]
+    name = models.CharField(max_length=200)
+    report_type = models.CharField(max_length=20, choices=REPORT_TYPE_CHOICES)
+    time_window = models.CharField(max_length=30, choices=TIME_WINDOW_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Report Preset"
+        verbose_name_plural = "Report Presets"
+
+    def __str__(self):
+        return f"{self.name} ({self.get_report_type_display()} - {self.get_time_window_display()})"
+
+
 class CSVUpload(models.Model):
     RECORD_TYPE_CHOICES = [
         ("sales", "Sales"),
         ("purchase", "Purchase"),
     ]
 
-    file = models.FileField(upload_to="csv_uploads/")
+    file_name = models.CharField(max_length=255, blank=True)
     record_type = models.CharField(max_length=10, choices=RECORD_TYPE_CHOICES)
     format_profile = models.ForeignKey(
         "CSVFormatProfile",
@@ -88,7 +118,7 @@ class CSVUpload(models.Model):
         verbose_name_plural = "CSV Uploads"
 
     def __str__(self):
-        return f"{self.record_type} upload at {self.uploaded_at}"
+        return f"{self.record_type} upload ({self.file_name}) at {self.uploaded_at}"
 
 
 class CSVFormatProfile(models.Model):
@@ -133,7 +163,7 @@ class CSVFormatProfile(models.Model):
 
     def _get_model_fields(self):
         model_class = SalesRecord if self.record_type == "sales" else PurchaseRecord
-        excluded = {"id", "created_at", "source"}
+        excluded = {"id", "created_at"}
         return {
             f.name
             for f in model_class._meta.get_fields()
@@ -142,7 +172,7 @@ class CSVFormatProfile(models.Model):
 
     def _get_required_fields(self):
         model_class = SalesRecord if self.record_type == "sales" else PurchaseRecord
-        excluded = {"id", "created_at", "source"}
+        excluded = {"id", "created_at", "source", "uuid"}
         required = set()
         for f in model_class._meta.get_fields():
             if not hasattr(f, "column") or f.name in excluded:
@@ -195,3 +225,10 @@ class CSVFormatProfile(models.Model):
                     )
                 }
             )
+
+class DatabaseExportTool(models.Model):
+    class Meta:
+        verbose_name = "Database Export"
+        verbose_name_plural = "Database Exports"
+        # Prevents Django from creating a DB table
+        managed = False

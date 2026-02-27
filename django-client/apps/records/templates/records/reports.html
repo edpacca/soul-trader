@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}
+    Reports
+{% endblock title %}
+{% block content %}
+    <h1>Reports</h1>
+    <div class="filter-actions">
+        <a href="{% url 'records:preset_create' %}" class="detail-button">Create New Preset</a>
+    </div>
+    {% if presets_by_type %}
+        {% for type_label, presets in presets_by_type.items %}
+            <section class="data-section">
+                <h2>{{ type_label }}</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Time Window</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for preset in presets %}
+                            <tr>
+                                <td>{{ preset.name }}</td>
+                                <td>{{ preset.get_time_window_display }}</td>
+                                <td>{{ preset.created_at|date:"Y-m-d H:i" }}</td>
+                                <td>
+                                    <div class="flex-row">
+                                        <a href="{% url 'records:preset_run' preset.id %}"
+                                           class="detail-button small">Run</a>
+                                        <form method="post" action="{% url 'records:preset_delete' preset.id %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="clear-filters">Delete</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+        {% endfor %}
+    {% else %}
+        <p>
+            No presets found. <a href="{% url 'records:preset_create' %}">Create one</a>.
+        </p>
+    {% endif %}
+{% endblock content %}
