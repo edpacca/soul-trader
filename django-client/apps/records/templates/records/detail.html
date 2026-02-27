@@ -113,11 +113,11 @@
             <input type="hidden" name="order" value="{{ sort_order }}">
         </form>
     </section>
-    {% include "records/_report_controls.html" with report_type=record_type presets=presets %}
     <section class="data-section">
         <div class="table-controls">
             <h2>{{ section_heading }}</h2>
-            <div>
+            {% include "records/_report_controls.html" with report_type=record_type presets=presets %}
+            <div class="toggles">
                 {% for column in columns %}
                     {% if column.has_toggle %}
                         <label class="checkbox-label">

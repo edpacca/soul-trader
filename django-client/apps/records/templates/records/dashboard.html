@@ -1,87 +1,118 @@
 {% extends "base.html" %}
 {% load query_helpers %}
-
-{% block title %}Dashboard{% endblock %}
-
+{% block title %}
+    Dashboard
+{% endblock title %}
 {% block content %}
-<h1>Sales &amp; Purchases Dashboard</h1>
-
-<section class="filter-section">
-    <form method="get" action="{% url 'records:dashboard' %}">
-        <div class="filter-row">
-            <label class="checkbox-label">
-                <input type="checkbox" name="sync_dates" {% if sync_dates %}checked{% endif %}>
-                Apply same date range to both
-            </label>
+    <h1>Sales &amp; Purchases Dashboard</h1>
+    {% if messages %}
+        <div class="messages">
+            {% for message in messages %}<div class="message {{ message.tags }}">{{ message }}</div>{% endfor %}
         </div>
-
-        <div class="dashboard-filter-row">
+    {% endif %}
+    <section class="filter-section">
+        <form method="get" action="{% url 'records:dashboard' %}">
+            <div class="filter-row">
+                <label class="checkbox-label">
+                    <input type="checkbox"
+                           name="sync_dates"
+                           {% if sync_dates %}checked{% endif %}>
+                    Apply same date range to both
+                </label>
+            </div>
+            <div class="dashboard-filter-row">
                 <h3>Sales Date Range</h3>
                 <div class="filter-row">
                     <div class="filter-label-input-small">
                         <label for="sales_start_date">Start Date:</label>
-                        <input type="date" id="sales_start_date" name="sales_start_date" value="{{ sales_start_date }}">
+                        <input type="date"
+                               id="sales_start_date"
+                               name="sales_start_date"
+                               value="{{ sales_start_date }}">
                     </div>
                     <div class="filter-label-input-small">
                         <label for="sales_end_date">End Date:</label>
-                        <input type="date" id="sales_end_date" name="sales_end_date" value="{{ sales_end_date }}">
+                        <input type="date"
+                               id="sales_end_date"
+                               name="sales_end_date"
+                               value="{{ sales_end_date }}">
                     </div>
                 </div>
             </div>
-            <hr/>
-        <div class="dashboard-filter-row">
-            <h3>Purchases Date Range</h3>
-            <div class="filter-row">
-                <div class="filter-label-input-small">
-                    <label for="purchases_start_date">Start Date:</label>
-                    <input type="date" id="purchases_start_date" name="purchases_start_date" value="{{ purchases_start_date }}">
-                </div>
-
-                <div class="filter-label-input-small">
-                    <label for="purchases_end_date">End Date:</label>
-                    <input type="date" id="purchases_end_date" name="purchases_end_date" value="{{ purchases_end_date }}">
+            <hr />
+            <div class="dashboard-filter-row">
+                <h3>Purchases Date Range</h3>
+                <div class="filter-row">
+                    <div class="filter-label-input-small">
+                        <label for="purchases_start_date">Start Date:</label>
+                        <input type="date"
+                               id="purchases_start_date"
+                               name="purchases_start_date"
+                               value="{{ purchases_start_date }}">
+                    </div>
+                    <div class="filter-label-input-small">
+                        <label for="purchases_end_date">End Date:</label>
+                        <input type="date"
+                               id="purchases_end_date"
+                               name="purchases_end_date"
+                               value="{{ purchases_end_date }}">
+                    </div>
                 </div>
             </div>
+            <div class="filter-actions">
+                <button type="submit">Apply Filters</button>
+                <a href="{% url 'records:dashboard' %}" class="clear-filters">Clear All</a>
             </div>
-
-
-        <div class="filter-actions">
-            <button type="submit">Apply Filters</button>
-            <a href="{% url 'records:dashboard' %}" class="clear-filters">Clear All</a>
+        </form>
+    </section>
+    <section class="summary-section">
+        <h2>Summary</h2>
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th>Total Sales</th>
+                    <th>Total Purchases</th>
+                    <th>Net Profit</th>
+                    <th>Sales Count</th>
+                    <th>Purchases Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{ summary.total_sales }}</td>
+                    <td>{{ summary.total_purchases }}</td>
+                    <td class="{% if summary.net_profit >= 0 %}profit-positive{% else %}profit-negative{% endif %}">
+                        {{ summary.net_profit }}
+                    </td>
+                    <td>{{ summary.sales_count }}</td>
+                    <td>{{ summary.purchases_count }}</td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="detail-buttons">
+            <a href="{{ sales_detail_url }}" target="_blank" class="detail-button">View Sales Details</a>
+            <a href="{{ purchases_detail_url }}"
+               target="_blank"
+               class="detail-button">View Purchases Details</a>
         </div>
-    </form>
-</section>
-
-{% include "records/_report_controls.html" with report_type="combined" presets=presets %}
-
-<section class="summary-section">
-    <h2>Summary</h2>
-    <table class="summary-table">
-        <thead>
-            <tr>
-                <th>Total Sales</th>
-                <th>Total Purchases</th>
-                <th>Net Profit</th>
-                <th>Sales Count</th>
-                <th>Purchases Count</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>{{ summary.total_sales }}</td>
-                <td>{{ summary.total_purchases }}</td>
-                <td class="{% if summary.net_profit >= 0 %}profit-positive{% else %}profit-negative{% endif %}">
-                    {{ summary.net_profit }}
-                </td>
-                <td>{{ summary.sales_count }}</td>
-                <td>{{ summary.purchases_count }}</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <div class="detail-buttons">
-        <a href="{{ sales_detail_url }}" target="_blank" class="detail-button">View Sales Details</a>
-        <a href="{{ purchases_detail_url }}" target="_blank" class="detail-button">View Purchases Details</a>
-    </div>
-</section>
-{% endblock %}
+    </section>
+    <section class="export-section">
+        <h2>Export Data</h2>
+        {% include "records/_report_controls.html" with report_type="combined" presets=presets %}
+        <div class="export-controls">
+            <form method="get"
+                  action="{% url 'records:export_csv' %}"
+                  class="export-form">
+                <div class="label-select-button-grid">
+                    <label for="export-table">Table:</label>
+                    <select id="export-table" name="table">
+                        <option value="sales">Sales</option>
+                        <option value="purchases">Purchases</option>
+                        <option value="all">All</option>
+                    </select>
+                    <button type="submit">Export CSV</button>
+                </div>
+            </form>
+        </div>
+    </section>
+{% endblock content %}

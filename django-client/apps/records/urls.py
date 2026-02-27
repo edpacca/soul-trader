@@ -1,16 +1,8 @@
-from django.http import HttpResponse
 from django.urls import path
 
 from . import views
 
 app_name = "records"
-
-
-# Placeholder views for PDF export endpoints (built in a parallel session).
-# These stubs let reverse() resolve the URL names used by preset_run.
-def _pdf_placeholder(request):
-    return HttpResponse("PDF export placeholder", content_type="text/plain")
-
 
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
@@ -28,4 +20,5 @@ urlpatterns = [
     path("sales/pdf/", views.sales_pdf_export, name="sales_pdf_export"),
     path("purchases/pdf/", views.purchases_pdf_export, name="purchases_pdf_export"),
     path("business/pdf/", views.business_pdf_export, name="business_pdf_export"),
+    path("export/csv/", views.export_csv, name="export_csv")
 ]

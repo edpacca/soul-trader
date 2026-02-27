@@ -1,16 +1,21 @@
 import csv
+from datetime import date
 import hashlib
 import io
 import json
 
 from django import forms
+from django.conf import settings
 from django.contrib import admin, messages
+from django.shortcuts import redirect
 from django.utils.safestring import mark_safe
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.urls import path
 
+from apps.records.services.export_service import export_db_dump
+
 from .forms import CSVFormatProfileForm
-from .models import CSVFormatProfile, CSVUpload, PurchaseRecord, SalesRecord, Source
+from .models import CSVFormatProfile, CSVUpload, DatabaseExportTool, PurchaseRecord, SalesRecord, Source
 from .services.csv_parser import DefaultCSVParser
 
 
@@ -34,6 +39,34 @@ class SalesRecordAdmin(BaseRecordAdmin):
 @admin.register(PurchaseRecord)
 class PurchaseRecordAdmin(BaseRecordAdmin):
     pass
+
+@admin.register(DatabaseExportTool)
+class DatabaseExportAdmin(admin.ModelAdmin):
+    def has_add_permission(self, request): return False
+    def has_change_permission(self, request, obj=None): return False
+    def has_delete_permission(self, request, obj=None): return False
+
+    def get_urls(self):
+        custom_urls = [
+            path("dump/", self.admin_site.admin_view(self.export_dump_view), name="records_databaseexport_dump"),
+        ]
+        return custom_urls + super().get_urls()
+
+    def changelist_view(self, request, extra_context=None):
+        # Redirect straight to the dump view instead of querying the (non-existent) table
+        from django.shortcuts import redirect
+        return redirect("admin:records_databaseexport_dump")
+
+    def export_dump_view(self, request):
+        from .services.export_service import export_db_dump
+        try:
+            dump_bytes = export_db_dump()
+            response = HttpResponse(dump_bytes, content_type="application/octet-stream")
+            response["Content-Disposition"] = f'attachment; filename="db_dump_{date.today()}.sql"'
+            return response
+        except Exception as e:
+            self.message_user(request, f"Export failed: {e}", messages.ERROR)
+            return redirect("..")
 
 
 class CSVUploadForm(forms.ModelForm):

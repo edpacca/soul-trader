@@ -222,3 +222,10 @@ class CSVFormatProfile(models.Model):
                     )
                 }
             )
+
+class DatabaseExportTool(models.Model):
+    class Meta:
+        verbose_name = "Database Export"
+        verbose_name_plural = "Database Exports"
+        # Prevents Django from creating a DB table
+        managed = False

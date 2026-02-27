@@ -30,19 +30,21 @@ class TestCSVFormatProfileModel(TestCase):
         return CSVFormatProfile(**defaults)
 
     def test_create_valid_sales_profile(self):
+        initial_count = CSVFormatProfile.objects.count()
         profile = self._build_profile()
         profile.full_clean()
         profile.save()
-        self.assertEqual(CSVFormatProfile.objects.count(), 1)
+        self.assertEqual(CSVFormatProfile.objects.count(), initial_count + 1)
         self.assertEqual(profile.name, "Test Profile")
         self.assertEqual(profile.record_type, "sales")
         self.assertTrue(profile.is_active)
 
     def test_create_valid_purchase_profile(self):
+        initial_count = CSVFormatProfile.objects.count()
         profile = self._build_profile(record_type="purchase")
         profile.full_clean()
         profile.save()
-        self.assertEqual(CSVFormatProfile.objects.count(), 1)
+        self.assertEqual(CSVFormatProfile.objects.count(), initial_count + 1)
         self.assertEqual(profile.record_type, "purchase")
 
     def test_default_delimiter(self):
@@ -137,6 +139,7 @@ class TestCSVFormatProfileModel(TestCase):
         self.assertGreaterEqual(profile.updated_at, first_updated)
 
     def test_ordering_by_name(self):
+        CSVFormatProfile.objects.all().delete()
         self._build_profile(name="Zebra").save()
         self._build_profile(name="Alpha").save()
         profiles = list(CSVFormatProfile.objects.values_list("name", flat=True))

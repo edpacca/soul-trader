@@ -48,6 +48,7 @@ class TestCSVFormatProfileAdminActions(CSVFormatProfileAdminTestBase):
         return reverse("admin:records_csvformatprofile_changelist")
 
     def test_duplicate_profile_action(self):
+        initial_count = CSVFormatProfile.objects.count()
         profile = self._create_profile(name="Original Profile")
         response = self.client.post(
             self._changelist_url(),
@@ -58,15 +59,16 @@ class TestCSVFormatProfileAdminActions(CSVFormatProfileAdminTestBase):
             follow=True,
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(CSVFormatProfile.objects.count(), 2)
-        copy = CSVFormatProfile.objects.exclude(pk=profile.pk).first()
-        self.assertEqual(copy.name, "Original Profile (copy)")
+        self.assertEqual(CSVFormatProfile.objects.count(), initial_count + 2)
+        copy = CSVFormatProfile.objects.filter(name="Original Profile (copy)").first()
+        self.assertIsNotNone(copy)
         self.assertEqual(copy.record_type, profile.record_type)
         self.assertEqual(copy.delimiter, profile.delimiter)
         self.assertEqual(copy.date_format, profile.date_format)
         self.assertEqual(copy.field_mappings, profile.field_mappings)
 
     def test_duplicate_multiple_profiles(self):
+        initial_count = CSVFormatProfile.objects.count()
         p1 = self._create_profile(name="Profile A")
         p2 = self._create_profile(name="Profile B")
         response = self.client.post(
@@ -78,7 +80,7 @@ class TestCSVFormatProfileAdminActions(CSVFormatProfileAdminTestBase):
             follow=True,
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(CSVFormatProfile.objects.count(), 4)
+        self.assertEqual(CSVFormatProfile.objects.count(), initial_count + 4)
         self.assertTrue(CSVFormatProfile.objects.filter(name="Profile A (copy)").exists())
         self.assertTrue(CSVFormatProfile.objects.filter(name="Profile B (copy)").exists())
 

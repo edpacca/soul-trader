@@ -2,6 +2,8 @@ from datetime import date, datetime
 from io import BytesIO
 
 from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.http import HttpResponseRedirect, JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -11,6 +13,7 @@ from django.template.loader import render_to_string
 
 from .models import PurchaseRecord, ReportPreset, SalesRecord
 from .services.aggregation import AggregationService
+from .services.export_service import export_records_as_csv
 from .services.presets import resolve_time_window
 
 ALLOWED_PAGE_SIZES = [25, 50, 100]
@@ -509,6 +512,28 @@ def purchases_pdf_export(request):
     response = HttpResponse(content, content_type="application/pdf")
     response["Content-Disposition"] = 'attachment; filename="purchases_report.pdf"'
     return response
+
+
+@login_required
+def export_csv(request):
+    table = request.GET.get("table", "all")
+    record_type_map = {
+        "sales": "sales",
+        "purchases": "purchase",
+        "all": "all",
+    }
+    record_type = record_type_map.get(table, "all")
+    try:
+        csv_content = export_records_as_csv(record_type)
+    except Exception as e:
+        messages.error(request, f"CSV export failed: {e}")
+        return redirect("records:dashboard")
+
+    today = date.today().isoformat()
+    response = HttpResponse(csv_content, content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="soultrader_export_{table}_{today}.csv"'
+    return response
+
 
 
 def business_pdf_export(request):

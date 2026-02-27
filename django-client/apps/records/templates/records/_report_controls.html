@@ -1,14 +1,13 @@
 <section class="report-controls">
-    <label for="report-preset-select">Report:</label>
-    <select id="report-preset-select">
-        <option value="current">Current Filters</option>
-        {% for preset in presets %}
-            <option value="{{ preset.id }}">{{ preset.name }}</option>
-        {% endfor %}
-    </select>
-    <button type="button" id="generate-report-btn">Generate Report</button>
+    <div class="label-select-button-grid">
+        <label for="report-preset-select">Report:</label>
+        <select id="report-preset-select">
+            <option value="current">Current Filters</option>
+            {% for preset in presets %}<option value="{{ preset.id }}">{{ preset.name }}</option>{% endfor %}
+        </select>
+        <button type="button" id="generate-report-btn">Generate Report</button>
+    </div>
 </section>
-
 <script>
 (function () {
     var select = document.getElementById('report-preset-select');
