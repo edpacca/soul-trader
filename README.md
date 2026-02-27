@@ -151,27 +151,3 @@ django-client/
 └── manage.py                # Django management script
 ```
 
-## Design Decisions
-
-### CSV Extensibility
-
-CSV parsing uses the **Strategy pattern** via the abstract `CSVParser` base class in `apps/records/services/csv_parser.py`. The current `DefaultCSVParser` handles the fixed schema. To add new formats:
-
-1. Create a new class extending `CSVParser`
-2. Implement the `parse()` method with the new mapping logic
-3. Register it in the admin or add a format selector to the upload form
-
-### Future Charting
-
-The aggregation logic is isolated in `AggregationService` (`apps/records/services/aggregation.py`), separate from views. This makes it straightforward to:
-
-- Add new endpoints returning JSON for chart libraries
-- Extend the summary with additional metrics
-- Plug in any JavaScript charting library on the frontend
-
-### Separation of Concerns
-
-- **Models** (`models.py`): Data persistence only
-- **Services** (`services/`): Business logic (parsing, aggregation)
-- **Views** (`views.py`): HTTP request handling, delegates to services
-- **Admin** (`admin.py`): Admin interface, delegates CSV processing to services
