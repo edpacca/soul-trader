@@ -64,6 +64,7 @@
                            step="1">
                 </div>
             </div>
+
             {% for column in columns %}
                 {% if column.filter == "num_range" %}
                     <div class="filter-row">
@@ -97,6 +98,18 @@
                     </div>
                 {% endif %}
             {% endfor %}
+              <div class="filter-row">
+                <div class="filter-label-input-small">
+                    <label for="source_ids">Sources:</label>
+                    <select id="source_ids" name="source_ids" multiple size="1">
+                        {% for source in all_sources %}
+                            <option value="{{ source.id }}" {% if source.id in selected_source_ids %}selected{% endif %}>
+                                {{ source.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
             <div class="filter-label-input-small">
                 <label for="page_size">Page Size:</label>
                 <select id="page_size" name="page_size">

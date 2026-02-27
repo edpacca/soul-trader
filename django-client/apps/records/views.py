@@ -11,7 +11,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods, require_POST
 from django.template.loader import render_to_string
 
-from .models import PurchaseRecord, ReportPreset, SalesRecord
+from .models import PurchaseRecord, ReportPreset, SalesRecord, Source
 from .services.aggregation import AggregationService
 from .services.export_service import export_records_as_csv
 from .services.presets import resolve_time_window
@@ -178,10 +178,14 @@ def sales_detail(request):
     end_date = _parse_date(request.GET.get("end_date", ""))
     page_size = _parse_page_size(request)
 
+    # Extract source filter
+    source_ids = request.GET.getlist("source_ids")
+    source_ids = [int(sid) for sid in source_ids if sid and sid.isdigit()]
+
     sort_params = _extract_sort_params(request, "sales")
     col_filters = _parse_filter_names(SALES_COLUMNS)
     filters = _extract_filter_params(request, col_filters)
-    sales_kwargs = {**filters, **sort_params}
+    sales_kwargs = {**filters, **sort_params, "source_ids": source_ids}
 
     qs = AggregationService.get_sales(
         start_date, end_date, **sales_kwargs
@@ -192,6 +196,7 @@ def sales_detail(request):
     records = _get_page(paginator, request.GET.get("page"))
 
     presets = ReportPreset.objects.filter(report_type="sales")
+    all_sources = Source.objects.all()
 
     context = {
         "start_date": start_date.isoformat() if start_date else "",
@@ -211,6 +216,8 @@ def sales_detail(request):
         "table_id": "sales-table",
         "columns": SALES_COLUMNS,
         "presets": presets,
+        "all_sources": all_sources,
+        "selected_source_ids": source_ids,
         **_build_year_range(),
     }
     return render(request, "records/detail.html", context)
@@ -221,10 +228,14 @@ def purchases_detail(request):
     end_date = _parse_date(request.GET.get("end_date", ""))
     page_size = _parse_page_size(request)
 
+    # Extract source filter
+    source_ids = request.GET.getlist("source_ids")
+    source_ids = [int(sid) for sid in source_ids if sid and sid.isdigit()]
+
     sort_params = _extract_sort_params(request, "purchases")
     col_filters = _parse_filter_names(PURCHASES_COLUMNS)
     filters = _extract_filter_params(request, col_filters)
-    purchases_kwargs = {**filters, **sort_params}
+    purchases_kwargs = {**filters, **sort_params, "source_ids": source_ids}
 
     qs = AggregationService.get_purchases(
         start_date, end_date,
@@ -236,6 +247,7 @@ def purchases_detail(request):
     records = _get_page(paginator, request.GET.get("page"))
 
     presets = ReportPreset.objects.filter(report_type="purchases")
+    all_sources = Source.objects.all()
 
     context = {
         "start_date": start_date.isoformat() if start_date else "",
@@ -255,6 +267,8 @@ def purchases_detail(request):
         "table_id": "purchases-table",
         "columns": PURCHASES_COLUMNS,
         "presets": presets,
+        "all_sources": all_sources,
+        "selected_source_ids": source_ids,
         **_build_year_range(),
     }
     return render(request, "records/detail.html", context)
@@ -456,10 +470,14 @@ def sales_pdf_export(request):
     start_date = _parse_date(request.GET.get("start_date", ""))
     end_date = _parse_date(request.GET.get("end_date", ""))
 
+    # Extract source filter
+    source_ids = request.GET.getlist("source_ids")
+    source_ids = [int(sid) for sid in source_ids if sid and sid.isdigit()]
+
     sort_params = _extract_sort_params(request, "sales")
     col_filters = _parse_filter_names(SALES_COLUMNS)
     filters = _extract_filter_params(request, col_filters)
-    sales_kwargs = {**filters, **sort_params}
+    sales_kwargs = {**filters, **sort_params, "source_ids": source_ids}
 
     qs = AggregationService.get_sales(start_date, end_date, **sales_kwargs)
     column_totals = AggregationService.get_column_totals(qs)
@@ -487,10 +505,14 @@ def purchases_pdf_export(request):
     start_date = _parse_date(request.GET.get("start_date", ""))
     end_date = _parse_date(request.GET.get("end_date", ""))
 
+    # Extract source filter
+    source_ids = request.GET.getlist("source_ids")
+    source_ids = [int(sid) for sid in source_ids if sid and sid.isdigit()]
+
     sort_params = _extract_sort_params(request, "purchases")
     col_filters = _parse_filter_names(PURCHASES_COLUMNS)
     filters = _extract_filter_params(request, col_filters)
-    purchases_kwargs = {**filters, **sort_params}
+    purchases_kwargs = {**filters, **sort_params, "source_ids": source_ids}
 
     qs = AggregationService.get_purchases(start_date, end_date, **purchases_kwargs)
     column_totals = AggregationService.get_column_totals(qs)

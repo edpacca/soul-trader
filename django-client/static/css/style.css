@@ -347,6 +347,30 @@ a.detail-button.small {
 	color: var(--text);
 }
 
+/* Multi-select styling */
+select[multiple] {
+	padding: 0.5rem;
+	background-color: var(--bg1);
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	color: var(--text);
+}
+
+select[multiple] option {
+	padding: 0.4rem 0.5rem;
+	background-color: var(--bg1);
+	color: var(--text);
+}
+
+select[multiple] option:checked {
+	background-color: var(--accent-hover);
+	color: var(--text);
+}
+
+select[multiple] option:hover {
+	background-color: var(--bg2);
+}
+
 .report-controls {
 	margin: 1rem 0;
 }
@@ -368,4 +392,3 @@ a.detail-button.small {
 	grid-template-columns: 5em 11em 11em;
 	gap: 1em;
 }
-
