@@ -1,10 +1,14 @@
-from datetime import date
+from datetime import date, datetime
+from io import BytesIO
 
+from django.conf import settings
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods, require_POST
+
 
 from .models import PurchaseRecord, SalesRecord
 from .services.aggregation import AggregationService
@@ -48,8 +52,8 @@ def _parse_filter_names(columns):
     for column in columns:
         if "filter" in column:
             if (column["filter"] == "num_range"):
-                filters_names.append(f"{column["field"]}_min")
-                filters_names.append(f"{column["field"]}_max")
+                filters_names.append(f"{column['field']}_min")
+                filters_names.append(f"{column['field']}_max")
             elif column["filter"] == "text":
                 filters_names.append(column["field"])
     return filters_names
@@ -315,3 +319,136 @@ def notes_list(request):
         "current_type": record_type,
     }
     return render(request, "records/notes_list.html", context)
+
+
+def _render_pdf(template_name, context):
+    """Render a Django template to HTML or PDF based on DEBUG setting.
+
+    Returns:
+        tuple: (content, content_type) where content is either HTML string or PDF bytes,
+               and content_type is either "html" or "pdf"
+    """
+    html_string = render_to_string(template_name, context)
+    if settings.DEBUG:
+        return html_string, "html"
+
+    import weasyprint
+    pdf_file = BytesIO()
+    weasyprint.HTML(string=html_string).write_pdf(pdf_file)
+    return pdf_file.getvalue(), "pdf"
+
+
+def _parse_columns(columns_param, all_columns):
+    """Parse a comma-separated columns param into a filtered list of column dicts."""
+    if not columns_param:
+        return list(all_columns)
+    requested = [c.strip() for c in columns_param.split(",") if c.strip()]
+    all_fields = {col["field"] for col in all_columns}
+    valid = [f for f in requested if f in all_fields]
+    if not valid:
+        return list(all_columns)
+    field_to_col = {col["field"]: col for col in all_columns}
+    return [field_to_col[f] for f in valid]
+
+
+def sales_pdf_export(request):
+    start_date = _parse_date(request.GET.get("start_date", ""))
+    end_date = _parse_date(request.GET.get("end_date", ""))
+
+    sort_params = _extract_sort_params(request, "sales")
+    col_filters = _parse_filter_names(SALES_COLUMNS)
+    filters = _extract_filter_params(request, col_filters)
+    sales_kwargs = {**filters, **sort_params}
+
+    qs = AggregationService.get_sales(start_date, end_date, **sales_kwargs)
+    column_totals = AggregationService.get_column_totals(qs)
+
+    columns = _parse_columns(request.GET.get("columns", ""), SALES_COLUMNS)
+
+    context = {
+        "records": qs,
+        "column_totals": column_totals,
+        "columns": columns,
+        "start_date": start_date.isoformat() if start_date else "All",
+        "end_date": end_date.isoformat() if end_date else "All",
+        "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
+    content, content_type = _render_pdf("records/pdf_sales.html", context)
+    if content_type == "html":
+        return HttpResponse(content, content_type="text/html")
+    response = HttpResponse(content, content_type="application/pdf")
+    response["Content-Disposition"] = 'attachment; filename="sales_report.pdf"'
+    return response
+
+
+def purchases_pdf_export(request):
+    start_date = _parse_date(request.GET.get("start_date", ""))
+    end_date = _parse_date(request.GET.get("end_date", ""))
+
+    sort_params = _extract_sort_params(request, "purchases")
+    col_filters = _parse_filter_names(PURCHASES_COLUMNS)
+    filters = _extract_filter_params(request, col_filters)
+    purchases_kwargs = {**filters, **sort_params}
+
+    qs = AggregationService.get_purchases(start_date, end_date, **purchases_kwargs)
+    column_totals = AggregationService.get_column_totals(qs)
+
+    columns = _parse_columns(request.GET.get("columns", ""), PURCHASES_COLUMNS)
+
+    context = {
+        "records": qs,
+        "column_totals": column_totals,
+        "columns": columns,
+        "start_date": start_date.isoformat() if start_date else "All",
+        "end_date": end_date.isoformat() if end_date else "All",
+        "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
+    content, content_type = _render_pdf("records/pdf_purchases.html", context)
+    if content_type == "html":
+        return HttpResponse(content, content_type="text/html")
+    response = HttpResponse(content, content_type="application/pdf")
+    response["Content-Disposition"] = 'attachment; filename="purchases_report.pdf"'
+    return response
+
+
+def business_pdf_export(request):
+    sales_start = _parse_date(request.GET.get("sales_start_date", ""))
+    sales_end = _parse_date(request.GET.get("sales_end_date", ""))
+    purchases_start = _parse_date(request.GET.get("purchases_start_date", ""))
+    purchases_end = _parse_date(request.GET.get("purchases_end_date", ""))
+
+    sales_summary = AggregationService.get_summary(sales_start, sales_end)
+    purchases_summary = AggregationService.get_summary(purchases_start, purchases_end)
+
+    sales_qs = AggregationService.get_sales(sales_start, sales_end)
+    purchases_qs = AggregationService.get_purchases(purchases_start, purchases_end)
+    sales_totals = AggregationService.get_column_totals(sales_qs)
+    purchases_totals = AggregationService.get_column_totals(purchases_qs)
+
+    total_sales = sales_summary["total_sales"]
+    total_purchases = purchases_summary["total_purchases"]
+    net_profit = total_sales - total_purchases
+
+    context = {
+        "total_sales": total_sales,
+        "total_purchases": total_purchases,
+        "net_profit": net_profit,
+        "sales_count": sales_summary["sales_count"],
+        "purchases_count": purchases_summary["purchases_count"],
+        "sales_totals": sales_totals,
+        "purchases_totals": purchases_totals,
+        "sales_start_date": sales_start.isoformat() if sales_start else "All",
+        "sales_end_date": sales_end.isoformat() if sales_end else "All",
+        "purchases_start_date": purchases_start.isoformat() if purchases_start else "All",
+        "purchases_end_date": purchases_end.isoformat() if purchases_end else "All",
+        "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
+    content, content_type = _render_pdf("records/pdf_business.html", context)
+    if content_type == "html":
+        return HttpResponse(content, content_type="text/html")
+    response = HttpResponse(content, content_type="application/pdf")
+    response["Content-Disposition"] = 'attachment; filename="business_report.pdf"'
+    return response
