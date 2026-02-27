@@ -295,3 +295,20 @@ a.detail-button.small {
 	flex-direction: row;
 	gap: 1em;
 }
+
+.report-controls {
+	margin: 1rem 0;
+}
+
+.report-controls select {
+	margin: 0 1rem 0 0.25rem;
+	padding: 0.5rem 1.5rem;
+	background-color: var(--bg1);
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	color: var(--text);
+}
+
+.report-controls label {
+	font-weight: 500;
+}

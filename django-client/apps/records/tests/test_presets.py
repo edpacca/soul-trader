@@ -237,6 +237,96 @@ class TestPresetListView(TestCase):
         self.assertContains(response, "P1")
 
 
+class TestReportControlsPartial(TestCase):
+    """Tests for the _report_controls.html reusable template include."""
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_dashboard_has_generate_report_button(self):
+        url = reverse("records:dashboard")
+        response = self.client.get(url)
+        self.assertContains(response, "Generate Report")
+        self.assertContains(response, 'id="generate-report-btn"')
+
+    def test_sales_detail_has_generate_report_button(self):
+        url = reverse("records:sales_detail")
+        response = self.client.get(url)
+        self.assertContains(response, "Generate Report")
+        self.assertContains(response, 'id="generate-report-btn"')
+
+    def test_purchases_detail_has_generate_report_button(self):
+        url = reverse("records:purchases_detail")
+        response = self.client.get(url)
+        self.assertContains(response, "Generate Report")
+        self.assertContains(response, 'id="generate-report-btn"')
+
+    def test_dashboard_has_current_filters_as_first_option(self):
+        url = reverse("records:dashboard")
+        response = self.client.get(url)
+        self.assertContains(response, '<option value="current">Current Filters</option>')
+
+    def test_sales_detail_has_current_filters_as_first_option(self):
+        url = reverse("records:sales_detail")
+        response = self.client.get(url)
+        self.assertContains(response, '<option value="current">Current Filters</option>')
+
+    def test_purchases_detail_has_current_filters_as_first_option(self):
+        url = reverse("records:purchases_detail")
+        response = self.client.get(url)
+        self.assertContains(response, '<option value="current">Current Filters</option>')
+
+    def test_report_controls_renders_with_presets(self):
+        preset = ReportPreset.objects.create(
+            name="Sales Weekly",
+            report_type="sales",
+            time_window="last_7_days",
+        )
+        url = reverse("records:sales_detail")
+        response = self.client.get(url)
+        self.assertContains(response, "Sales Weekly")
+        self.assertContains(response, f'<option value="{preset.id}">Sales Weekly</option>')
+
+    def test_report_controls_renders_without_presets(self):
+        url = reverse("records:sales_detail")
+        response = self.client.get(url)
+        self.assertContains(response, 'id="report-preset-select"')
+        self.assertContains(response, '<option value="current">Current Filters</option>')
+        # The select should only contain the "Current Filters" option
+        content = response.content.decode()
+        select_start = content.index('id="report-preset-select"')
+        select_end = content.index('</select>', select_start)
+        select_html = content[select_start:select_end]
+        self.assertEqual(select_html.count('<option'), 1)
+
+    def test_dashboard_report_controls_uses_combined_report_type(self):
+        url = reverse("records:dashboard")
+        response = self.client.get(url)
+        self.assertContains(response, "var reportType = 'combined';")
+
+    def test_sales_report_controls_uses_sales_report_type(self):
+        url = reverse("records:sales_detail")
+        response = self.client.get(url)
+        self.assertContains(response, "var reportType = 'sales';")
+
+    def test_purchases_report_controls_uses_purchases_report_type(self):
+        url = reverse("records:purchases_detail")
+        response = self.client.get(url)
+        self.assertContains(response, "var reportType = 'purchases';")
+
+    def test_report_controls_only_shows_matching_presets(self):
+        ReportPreset.objects.create(
+            name="Sales Preset", report_type="sales", time_window="last_7_days",
+        )
+        ReportPreset.objects.create(
+            name="Purchases Preset", report_type="purchases", time_window="last_30_days",
+        )
+        url = reverse("records:sales_detail")
+        response = self.client.get(url)
+        self.assertContains(response, "Sales Preset")
+        self.assertNotContains(response, "Purchases Preset")
+
+
 class TestDashboardPresetsContext(TestCase):
     def setUp(self):
         self.client = Client()
