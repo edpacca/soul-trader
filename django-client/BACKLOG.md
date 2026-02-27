@@ -4,7 +4,7 @@
 - [x]  **Advanced Table Tools**
 - [x]  **Flexible CSV Import System**
 - [x]  **Record Enhancements**
-- [ ]  **Reporting & PDF Generation**
+- [X]  **Reporting & PDF Generation**
 - [ ]  **Usability & Deployment**
 
 ---
@@ -163,9 +163,9 @@ _PDF exports, report presets, scheduled reports._
 
 **Acceptance Criteria**
 
-- [ ]  Export respects active filters, sorting, and columns
-- [ ]  PDF includes totals (net, gross, profit) and date range metadata
-- [ ]  Clean, printable layout (A4 portrait by default)
+- [X]  Export respects active filters, sorting, and columns
+- [X]  PDF includes totals (net, gross, profit) and date range metadata
+- [X]  Clean, printable layout (A4 portrait by default)
 
 ---
 
@@ -177,9 +177,9 @@ _PDF exports, report presets, scheduled reports._
 
 **Acceptance Criteria**
 
-- [ ]  Define preset name, time window (e.g., last 30 days, this month), and included fields
-- [ ]  Presets saved to DB and listed in UI
-- [ ]  One-click run generates report using current data
+- [X]  Define preset name, time window (e.g., last 30 days, this month), and included fields
+- [X]  Presets saved to DB and listed in UI
+- [X]  One-click run generates report using current data
 
 ---
 
