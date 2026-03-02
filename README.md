@@ -1,11 +1,23 @@
 <h3 style="color:goldenrod;">
-AI vibe-coding disclosure!
+Agentic assisted work disclosure
 </h3>
-_I developed this as part of some exploratory work using AI assisted tools. I am fairly skeptical of the efficacy of producing a lot of work in a short time frame for production level software. I did create parts of it 'manually' but for the most part it is AI generated. I'm fairly impressed, a little concerned and mildy baffled by how much work was able to get done - but I would not be as happy about the code quality and readability if it was all my own. With that being said, have a nice day and continue..._
 
-# Django Sales & Purchases Dashboard
+_I initially developed this mini project in order to explore and investigate what it is like to develop whilst leaning heavily on agentic AI tooling. This work was done mostly with Devin session and batch modes. Although this application works and has more features than I would be able to produce manually in the same timeframe, I remain skeptical of the efficacy of producing large bodies of development work. In particular, the readability and composition of this application started to get out of hand - I am learning though, and I can see the power of such tooling. I think if one slowed just a little bit, planned properly and made use of PR reviewing tools then there is certainly potential for a lone developer to achieve quite a lot. Overall I'm fairly impressed, a little concerned and mildy baffled. I may come back and try a refactor at some point, either manually or with an agent. With that being said, have a nice day and continue..._
 
-A skeleton Django application for uploading, querying, and viewing aggregated sales and purchase data. Runs via Docker with PostgreSQL.
+# Sales & Purchases Dashboard
+
+A Django web application for managing sales and purchases records for a small business. Import data via CSV, filter and browse records, generate PDF reports, and track profitability — all through a simple web interface backed by PostgreSQL.
+
+## Key Features
+
+- **Configurable CSV import** — define format profiles with custom delimiters, date formats, and column mappings to import CSVs from any source
+- **Dashboard** — view total sales, total purchases, and net profit across a configurable date range
+- **Filtering & sorting** — filter by date, item name, price range, post code, source, and notes; sort by any column
+- **PDF reports** — export sales, purchases, or a combined business report as a PDF; reports respect active filters and date ranges
+- **Report presets** — save named presets (e.g. "This Month – Sales") and run them in one click
+- **CSV & database export** — export records as CSV or take a full PostgreSQL dump for backup and restore
+- **Notes** — add inline notes to individual records; browse all notes from a dedicated page
+- **Sources** — tag records with a named source for grouping and filtering
 
 ## Quick Start
 
@@ -15,94 +27,51 @@ A skeleton Django application for uploading, querying, and viewing aggregated sa
 
 ### Setup
 
-1. Copy the environment file:
-
+1. Start the application:
    ```bash
-   cp .env.example .env
+   docker compose up --build
    ```
 
-2. Start the application:
-
+2. In a separate terminal, create a superuser:
    ```bash
-   docker-compose up --build
+   docker compose exec web python manage.py createsuperuser
    ```
+   Migrations run automatically on startup.
 
-3. In a separate terminal, run migrations and create a superuser:
+3. Access the application:
+   - Dashboard: http://localhost:8000/
+   - Django Admin: http://localhost:8000/admin/
 
-   ```bash
-   docker-compose exec web python manage.py migrate
-   docker-compose exec web python manage.py createsuperuser
-   ```
+## Importing CSV Data
 
-4. Access the application:
-   - **Main Dashboard:** http://localhost:8000/
-   - **Django Admin:** http://localhost:8000/admin/
+CSV imports are managed through the Django Admin:
 
-> **Note:** When using `docker-compose up` the web service automatically runs migrations on startup, so step 3's migrate command is only needed if you want to run it manually or if the automatic migration didn't complete.
-
-## Uploading CSV Data
-
-1. Log in to the Django Admin at http://localhost:8000/admin/
-2. Navigate to **CSV Uploads > Add CSV Upload**
-3. Select the record type (Sales or Purchase)
-4. Upload a CSV file
-5. The system will parse, validate, and import the records
-
-### CSV Format
-
-The CSV must include a header row with these columns:
-
-| Column | Required | Description |
-|---|---|---|
-| `date` | Yes | Date in `YYYY-MM-DD`, `DD/MM/YYYY`, or `MM/DD/YYYY` format |
-| `item_name` | Yes | Name of the item |
-| `quantity` | Yes | Positive integer |
-| `unit_price` | Yes | Decimal number |
-| `total_price` | Yes | Decimal number |
-| `shipping_cost` | Yes | Decimal number |
-| `post_code` | Yes | Postal/ZIP code |
-| `currency` | No | 3-letter currency code (defaults to GBP) |
+1. Log in at http://localhost:8000/admin/
+2. Create a CSV Format Profile under Records > CSV Format Profiles, specifying the delimiter, date format, and a mapping of column index to field name
+3. Navigate to CSV Uploads > Add CSV Upload, select the record type, choose the format profile, and upload the file
+4. The system validates, deduplicates (by UUID), and imports the records
 
 Sample CSV files are provided in the `sample_data/` directory.
 
-## Main Dashboard
+## Application Pages
 
-The dashboard at http://localhost:8000/ allows you to:
-
-- Select a date range using the start and end date pickers
-- View a summary showing total sales, total purchases, and net profit
-- Browse individual sales and purchase records in tables
+| URL | Description |
+|-----|-------------|
+| `/` | Dashboard — summary and date-range filter |
+| `/sales/` | Sales records — filter, sort, paginate, export |
+| `/purchases/` | Purchase records — filter, sort, paginate, export |
+| `/notes/` | All annotated records |
+| `/reports/` | Saved report presets |
+| `/admin/` | Django admin — import, manage records, export data |
 
 ## Local Development (without Docker)
 
-You can run the application locally using SQLite instead of PostgreSQL. This is convenient for development and does not require Docker.
-
-> **Note:** This setup is for development only. Production deployments should use PostgreSQL via Docker.
-
-### Prerequisites
-
-- Python 3.x installed
-- Install dependencies:
-
-  ```bash
-  pip install -r requirements.txt
-  ```
-
-### Run Migrations
+Requires Python 3.x. Uses SQLite instead of PostgreSQL.
 
 ```bash
+pip install -r requirements.txt
 python manage.py migrate --settings=config.settings_local
-```
-
-### Create a Superuser
-
-```bash
 python manage.py createsuperuser --settings=config.settings_local
-```
-
-### Start the Development Server
-
-```bash
 python manage.py runserver --settings=config.settings_local
 ```
 
@@ -110,13 +79,11 @@ The application will be available at http://localhost:8000/.
 
 ## Running Tests
 
-Tests use Django's built-in test framework. A dedicated test settings file (`config/settings_test.py`) uses an in-memory SQLite database so tests can run without PostgreSQL.
-
 ```bash
-# Via Docker (uses PostgreSQL)
-docker-compose exec web python manage.py test
+# Via Docker
+docker compose exec web python manage.py test
 
-# Locally without PostgreSQL (uses SQLite in-memory)
+# Locally (uses in-memory SQLite)
 python manage.py test --settings=config.settings_test
 ```
 
@@ -125,20 +92,24 @@ python manage.py test --settings=config.settings_test
 ```
 django-client/
 ├── config/                  # Django project configuration
-│   ├── settings.py          # Settings (DB, apps, middleware)
+│   ├── settings.py          # Production settings (PostgreSQL)
 │   ├── settings_local.py    # Local dev settings (SQLite)
 │   ├── settings_test.py     # Test settings (in-memory SQLite)
 │   ├── urls.py              # Root URL configuration
 │   └── wsgi.py              # WSGI entry point
 ├── apps/
 │   └── records/             # Main application
-│       ├── models.py        # SalesRecord, PurchaseRecord, CSVUpload
-│       ├── admin.py         # Admin with CSV upload processing
-│       ├── views.py         # Dashboard view
+│       ├── models.py        # SalesRecord, PurchaseRecord, CSVUpload, CSVFormatProfile, ReportPreset, Source
+│       ├── admin.py         # Admin: CSV upload processing, format profiles, DB export
+│       ├── forms.py         # CSVUploadForm, CSVFormatProfileForm
+│       ├── views.py         # Dashboard, detail, notes, presets, PDF and CSV export
 │       ├── urls.py          # App URL routes
-│       ├── services/        # Business logic layer
-│       │   ├── csv_parser.py    # CSV parsing (strategy pattern)
-│       │   └── aggregation.py   # Data aggregation service
+│       ├── services/
+│       │   ├── csv_parser.py      # Profile-driven CSV parsing
+│       │   ├── aggregation.py     # Filtering, sorting, totals
+│       │   ├── export_service.py  # CSV and PostgreSQL dump export
+│       │   └── presets.py         # Time-window resolution for report presets
+│       ├── templatetags/    # Custom template tags
 │       ├── templates/       # App-specific templates
 │       └── tests/           # Automated tests
 ├── templates/               # Base templates
@@ -146,8 +117,31 @@ django-client/
 ├── sample_data/             # Example CSV files
 ├── Dockerfile               # Container definition
 ├── docker-compose.yml       # Multi-service orchestration
-├── .env.example             # Environment variable template
-├── requirements.txt         # Python dependencies
 └── manage.py                # Django management script
 ```
 
+## Restoring from a Database Dump
+
+Requires Docker. The dump must have been created using the DB Dump export in the Admin.
+
+```bash
+# Start the database only
+docker compose up -d db
+
+# Drop and recreate the database
+docker compose exec db psql -U postgres -c "DROP DATABASE IF EXISTS django_client; CREATE DATABASE django_client;"
+
+# Restore the dump
+cat db_dump_YYYY-MM-DD.sql | docker compose exec -T db psql -U postgres -d django_client
+
+# Start the web service
+docker compose up web
+```
+
+The dump includes all Django tables, so migrations are not required after restore. Create a new superuser if the original is not included in the dump.
+
+## Notes
+
+- The **root `README.md`** (`/README.md`) currently describes an entirely unrelated blockchain data platform and should be replaced or removed — it will mislead anyone landing on the repository.
+- The `.env.example` file referenced in the current README does not exist in the repository. The proposed README above removes that step since the `docker-compose.yml` uses environment variables with sensible defaults for local use. If specific environment variables need to be documented, a small table could be added.
+- PDF generation uses [WeasyPrint](https://weasyprint.org/) and only activates when `DEBUG=False` (i.e. inside Docker). In local dev mode it renders as HTML instead.
