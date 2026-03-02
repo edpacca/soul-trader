@@ -26,19 +26,20 @@ A Django web application for managing sales and purchases records for a small bu
 - Docker and Docker Compose installed
 
 ### Setup
+1. Create a new `.env` file using `.env.example` as a template
 
-1. Start the application:
+2. Start the application:
    ```bash
    docker compose up --build
    ```
 
-2. In a separate terminal, create a superuser:
+3. In a separate terminal, create a superuser:
    ```bash
    docker compose exec web python manage.py createsuperuser
    ```
    Migrations run automatically on startup.
 
-3. Access the application:
+4. Access the application:
    - Dashboard: http://localhost:8000/
    - Django Admin: http://localhost:8000/admin/
 
@@ -143,5 +144,4 @@ The dump includes all Django tables, so migrations are not required after restor
 ## Notes
 
 - The **root `README.md`** (`/README.md`) currently describes an entirely unrelated blockchain data platform and should be replaced or removed — it will mislead anyone landing on the repository.
-- The `.env.example` file referenced in the current README does not exist in the repository. The proposed README above removes that step since the `docker-compose.yml` uses environment variables with sensible defaults for local use. If specific environment variables need to be documented, a small table could be added.
 - PDF generation uses [WeasyPrint](https://weasyprint.org/) and only activates when `DEBUG=False` (i.e. inside Docker). In local dev mode it renders as HTML instead.
