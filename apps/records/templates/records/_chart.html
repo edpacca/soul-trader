@@ -1,19 +1,44 @@
 {% load static %}
 <script src="{% static 'js/chart.umd.min.js' %}"></script>
 <section class="chart-section">
-    <h2>Chart</h2>
-    <div class="chart-controls">
-        <button class="chart-group-btn active" data-group="day">Daily</button>
-        <button class="chart-group-btn" data-group="month">Monthly</button>
-        <button class="chart-group-btn" data-group="year">Yearly</button>
+    <button class="chart-toggle-btn" id="chartToggleBtn" aria-expanded="false">
+        ▶ Show Chart
+    </button>
+    <div id="chartBody" style="display:none;">
+        <div class="chart-controls">
+            <button class="chart-group-btn active" data-group="day">Daily</button>
+            <button class="chart-group-btn" data-group="month">Monthly</button>
+            <button class="chart-group-btn" data-group="year">Yearly</button>
+        </div>
+        <canvas id="recordsChart" aria-label="Time series chart"></canvas>
     </div>
-    <canvas id="recordsChart" aria-label="Time series chart"></canvas>
 </section>
 
 <script>
 (function () {
     var chartRecordType = '{{ chart_record_type }}';
     var currentGroupBy = 'day';
+    var loaded = false;
+
+    var toggleBtn = document.getElementById('chartToggleBtn');
+    var chartBody = document.getElementById('chartBody');
+
+    toggleBtn.addEventListener('click', function () {
+        var expanded = toggleBtn.getAttribute('aria-expanded') === 'true';
+        if (expanded) {
+            chartBody.style.display = 'none';
+            toggleBtn.setAttribute('aria-expanded', 'false');
+            toggleBtn.textContent = '▶ Show Chart';
+        } else {
+            chartBody.style.display = '';
+            toggleBtn.setAttribute('aria-expanded', 'true');
+            toggleBtn.textContent = '▼ Hide Chart';
+            if (!loaded) {
+                fetchAndRender(currentGroupBy);
+                loaded = true;
+            }
+        }
+    });
 
     function fetchAndRender(groupBy) {
         var params = new URLSearchParams(window.location.search);
@@ -66,7 +91,5 @@
             fetchAndRender(currentGroupBy);
         });
     });
-
-    fetchAndRender(currentGroupBy);
 })();
 </script>
