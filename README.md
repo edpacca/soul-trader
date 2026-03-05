@@ -145,3 +145,11 @@ The dump includes all Django tables, so migrations are not required after restor
 
 - The **root `README.md`** (`/README.md`) currently describes an entirely unrelated blockchain data platform and should be replaced or removed — it will mislead anyone landing on the repository.
 - PDF generation uses [WeasyPrint](https://weasyprint.org/) and only activates when `DEBUG=False` (i.e. inside Docker). In local dev mode it renders as HTML instead.
+
+# Cert generation
+
+openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+   -keyout nginx/certs/selfsigned.key \
+   -out nginx/certs/selfsigned.crt \
+   -subj "/CN=soul-trader.local" \
+   -addext "subjectAltName=IP:192.168.1.x,DNS:soul-trader.local"
