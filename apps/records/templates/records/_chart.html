@@ -1,0 +1,72 @@
+{% load static %}
+<script src="{% static 'js/chart.umd.min.js' %}"></script>
+<section class="chart-section">
+    <h2>Chart</h2>
+    <div class="chart-controls">
+        <button class="chart-group-btn active" data-group="day">Daily</button>
+        <button class="chart-group-btn" data-group="month">Monthly</button>
+        <button class="chart-group-btn" data-group="year">Yearly</button>
+    </div>
+    <canvas id="recordsChart" aria-label="Time series chart"></canvas>
+</section>
+
+<script>
+(function () {
+    var chartRecordType = '{{ chart_record_type }}';
+    var currentGroupBy = 'day';
+
+    function fetchAndRender(groupBy) {
+        var params = new URLSearchParams(window.location.search);
+        params.set('record_type', chartRecordType);
+        params.set('group_by', groupBy);
+        // Remove pagination/sort params that don't affect chart data
+        ['page', 'page_size', 'sales_sort', 'sales_order', 'purchases_sort', 'purchases_order'].forEach(function (k) {
+            params.delete(k);
+        });
+
+        fetch('/chart-data/?' + params.toString(), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+            var canvas = document.getElementById('recordsChart');
+            var existing = Chart.getChart(canvas);
+            if (existing) existing.destroy();
+
+            new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: data.datasets.map(function (ds) {
+                        return {
+                            label: ds.label,
+                            data: ds.data.map(function (row) { return row.total; }),
+                            tension: 0.3,
+                            fill: false,
+                        };
+                    }),
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'top' } },
+                    scales: { x: { ticks: { maxTicksLimit: 12 } } },
+                },
+            });
+        })
+        .catch(function (err) {
+            console.error('Error loading chart data:', err);
+        });
+    }
+
+    document.querySelectorAll('.chart-group-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('.chart-group-btn').forEach(function (b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            currentGroupBy = btn.dataset.group;
+            fetchAndRender(currentGroupBy);
+        });
+    });
+
+    fetchAndRender(currentGroupBy);
+})();
+</script>

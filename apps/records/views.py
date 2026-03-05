@@ -460,6 +460,50 @@ def export_csv(request):
 
 
 
+@login_required
+def chart_data(request):
+    record_type = request.GET.get("record_type", "combined")
+    group_by = request.GET.get("group_by", "month")
+    if group_by not in ("day", "month", "year"):
+        group_by = "month"
+
+    start_date = _parse_date(request.GET.get("start_date", ""))
+    end_date = _parse_date(request.GET.get("end_date", ""))
+
+    # Build shared filter kwargs (no sort needed for chart data)
+    sales_filters = _extract_filter_params(request, _parse_filter_names(SALES_COLUMNS))
+    purchases_filters = _extract_filter_params(request, _parse_filter_names(PURCHASES_COLUMNS))
+    source_ids = [int(s) for s in request.GET.getlist("source_ids") if s.isdigit()]
+
+    datasets = []
+
+    if record_type in ("sales", "combined"):
+        sales_qs = AggregationService.get_sales(start_date, end_date, **sales_filters, source_ids=source_ids)
+        sales_series = AggregationService.get_time_series(sales_qs, group_by)
+        datasets.append({"label": "Sales", "data": sales_series})
+
+    if record_type in ("purchases", "combined"):
+        purchases_qs = AggregationService.get_purchases(start_date, end_date, **purchases_filters, source_ids=source_ids)
+        purchases_series = AggregationService.get_time_series(purchases_qs, group_by)
+        datasets.append({"label": "Purchases", "data": purchases_series})
+
+    if record_type == "combined":
+        # Merge sales and purchases by period to compute net profit per period
+        sales_by_period = {row["period"]: row["total"] for row in sales_series}
+        purchases_by_period = {row["period"]: row["total"] for row in purchases_series}
+        all_periods = sorted(set(sales_by_period) | set(purchases_by_period))
+        net_series = [
+            {"period": p, "total": round(sales_by_period.get(p, 0) - purchases_by_period.get(p, 0), 2)}
+            for p in all_periods
+        ]
+        datasets.append({"label": "Net Profit", "data": net_series})
+
+    # Collect all unique labels in sorted order
+    all_labels = sorted({row["period"] for ds in datasets for row in ds["data"]})
+
+    return JsonResponse({"labels": all_labels, "datasets": datasets})
+
+
 def business_pdf_export(request):
     sales_start = _parse_date(request.GET.get("sales_start_date", ""))
     sales_end = _parse_date(request.GET.get("sales_end_date", ""))

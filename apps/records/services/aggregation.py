@@ -5,6 +5,7 @@ from operator import or_
 from typing import Optional
 
 from django.db.models import Q, QuerySet, Sum
+from django.db.models.functions import TruncDay, TruncMonth, TruncYear
 
 from apps.records.models import PurchaseRecord, SalesRecord
 
@@ -146,6 +147,27 @@ class AggregationService:
             "quantity": agg["quantity"] or 0,
             "net_value": net_value
         }
+
+    @staticmethod
+    def get_time_series(qs: QuerySet, group_by: str = "month") -> list:
+        """Group a QuerySet by day/month/year and return sorted time-series data.
+
+        group_by: "day" | "month" | "year"
+        Returns: [{"period": "YYYY-MM-DD", "total": float}, ...]
+        """
+        trunc_map = {"day": TruncDay, "month": TruncMonth, "year": TruncYear}
+        trunc_fn = trunc_map.get(group_by, TruncMonth)
+        rows = (
+            qs.annotate(period=trunc_fn("date"))
+            .values("period")
+            .annotate(total=Sum("total_price"))
+            .order_by("period")
+        )
+        return [
+            {"period": row["period"].strftime("%Y-%m-%d"), "total": float(row["total"] or 0)}
+            for row in rows
+            if row["period"] is not None
+        ]
 
     @staticmethod
     def get_summary(

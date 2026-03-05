@@ -20,5 +20,6 @@ urlpatterns = [
     path("sales/pdf/", views.sales_pdf_export, name="sales_pdf_export"),
     path("purchases/pdf/", views.purchases_pdf_export, name="purchases_pdf_export"),
     path("business/pdf/", views.business_pdf_export, name="business_pdf_export"),
-    path("export/csv/", views.export_csv, name="export_csv")
+    path("export/csv/", views.export_csv, name="export_csv"),
+    path("chart-data/", views.chart_data, name="chart_data"),
 ]
