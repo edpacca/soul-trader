@@ -162,12 +162,13 @@ class AggregationService:
         total_purchases = round(
             purchases_qs.aggregate(total=Sum("total_price"))["total"] or Decimal("0"), 2
         )
-        net_profit = total_sales - total_purchases
 
         return {
             "total_sales": total_sales,
             "total_purchases": total_purchases,
-            "net_profit": net_profit,
+            "total_commission": total_sales_commission,
+            "total_sales_shipping": total_sales_shipping,
+            "net_profit": total_sales - total_purchases,
             "sales_count": sales_qs.count(),
             "purchases_count": purchases_qs.count(),
         }

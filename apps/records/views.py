@@ -107,68 +107,25 @@ def _parse_page_size(request):
 
 
 def dashboard(request):
-    sales_start_str = request.GET.get("sales_start_date", "")
-    sales_end_str = request.GET.get("sales_end_date", "")
-    purchases_start_str = request.GET.get("purchases_start_date", "")
-    purchases_end_str = request.GET.get("purchases_end_date", "")
+    start_date = _parse_date(request.GET.get("start_date", ""))
+    end_date = _parse_date(request.GET.get("end_date", ""))
 
-    sync_dates = request.GET.get("sync_dates", "") == "on"
+    summary = AggregationService.get_summary(start_date, end_date)
 
-    sales_start = _parse_date(sales_start_str)
-    sales_end = _parse_date(sales_end_str)
-    purchases_start = _parse_date(purchases_start_str)
-    purchases_end = _parse_date(purchases_end_str)
-
-    if sync_dates:
-        if (sales_start is not None or sales_end is not None) and purchases_start is None and purchases_end is None:
-            purchases_start = sales_start
-            purchases_end = sales_end
-        elif (purchases_start is not None or purchases_end is not None) and sales_start is None and sales_end is None:
-            sales_start = purchases_start
-            sales_end = purchases_end
-
-    summary = AggregationService.get_summary(
-        sales_start,
-        sales_end,
-    )
-    summary_purchases = AggregationService.get_summary(
-        purchases_start,
-        purchases_end,
-    )
-    summary["total_purchases"] = summary_purchases["total_purchases"]
-    summary["purchases_count"] = summary_purchases["purchases_count"]
-    summary["net_profit"] = summary["total_sales"] - summary["total_purchases"]
-
-    sales_detail_params = []
-    if sales_start is not None:
-        sales_detail_params.append(f"start_date={sales_start.isoformat()}")
-    if sales_end is not None:
-        sales_detail_params.append(f"end_date={sales_end.isoformat()}")
-    sales_detail_url = "/sales/"
-    if sales_detail_params:
-        sales_detail_url += "?" + "&".join(sales_detail_params)
-
-    purchases_detail_params = []
-    if purchases_start is not None:
-        purchases_detail_params.append(f"start_date={purchases_start.isoformat()}")
-    if purchases_end is not None:
-        purchases_detail_params.append(f"end_date={purchases_end.isoformat()}")
-    purchases_detail_url = "/purchases/"
-    if purchases_detail_params:
-        purchases_detail_url += "?" + "&".join(purchases_detail_params)
-
-    presets = ReportPreset.objects.filter(report_type="combined")
+    params = []
+    if start_date is not None:
+        params.append(f"start_date={start_date.isoformat()}")
+    if end_date is not None:
+        params.append(f"end_date={end_date.isoformat()}")
+    qs = ("?" + "&".join(params)) if params else ""
 
     context = {
-        "sales_start_date": sales_start.isoformat() if sales_start else "",
-        "sales_end_date": sales_end.isoformat() if sales_end else "",
-        "purchases_start_date": purchases_start.isoformat() if purchases_start else "",
-        "purchases_end_date": purchases_end.isoformat() if purchases_end else "",
-        "sync_dates": sync_dates,
+        "start_date": start_date.isoformat() if start_date else "",
+        "end_date": end_date.isoformat() if end_date else "",
         "summary": summary,
-        "sales_detail_url": sales_detail_url,
-        "purchases_detail_url": purchases_detail_url,
-        "presets": presets,
+        "sales_detail_url": "/sales/" + qs,
+        "purchases_detail_url": "/purchases/" + qs,
+        "presets": ReportPreset.objects.filter(report_type="combined"),
     }
     return render(request, "records/dashboard.html", context)
 
@@ -444,7 +401,7 @@ def _render_pdf(template_name, context):
                and content_type is either "html" or "pdf"
     """
     html_string = render_to_string(template_name, context)
-    if settings.DEBUG:
+    if settings.DEBUG or settings.TESTING:
         return html_string, "html"
 
     import weasyprint
@@ -493,10 +450,9 @@ def sales_pdf_export(request):
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
 
-    content, content_type = _render_pdf("records/pdf_sales.html", context)
-    if content_type == "html":
-        return HttpResponse(content, content_type="text/html")
-    response = HttpResponse(content, content_type="application/pdf")
+    content, content_type_str = _render_pdf("records/pdf_sales.html", context)
+    content_type = "text/html" if content_type_str == "html" else "application_pdf"
+    response = HttpResponse(content, content_type=content_type)
     response["Content-Disposition"] = 'attachment; filename="sales_report.pdf"'
     return response
 
@@ -528,10 +484,9 @@ def purchases_pdf_export(request):
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
 
-    content, content_type = _render_pdf("records/pdf_purchases.html", context)
-    if content_type == "html":
-        return HttpResponse(content, content_type="text/html")
-    response = HttpResponse(content, content_type="application/pdf")
+    content, content_type_str = _render_pdf("records/pdf_purchases.html", context)
+    content_type = "text/html" if content_type_str == "html" else "application_pdf"
+    response = HttpResponse(content, content_type=content_type)
     response["Content-Disposition"] = 'attachment; filename="purchases_report.pdf"'
     return response
 
@@ -579,6 +534,8 @@ def business_pdf_export(request):
     context = {
         "total_sales": total_sales,
         "total_purchases": total_purchases,
+        "total_commission": sales_summary["total_commission"],
+        "total_sales_shipping":sales_summary["total_sales_shipping"],
         "net_profit": net_profit,
         "sales_count": sales_summary["sales_count"],
         "purchases_count": purchases_summary["purchases_count"],
@@ -591,9 +548,8 @@ def business_pdf_export(request):
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
 
-    content, content_type = _render_pdf("records/pdf_business.html", context)
-    if content_type == "html":
-        return HttpResponse(content, content_type="text/html")
-    response = HttpResponse(content, content_type="application/pdf")
+    content, content_type_str = _render_pdf("records/pdf_business.html", context)
+    content_type = "text/html" if content_type_str == "html" else "application_pdf"
+    response = HttpResponse(content, content_type=content_type)
     response["Content-Disposition"] = 'attachment; filename="business_report.pdf"'
     return response

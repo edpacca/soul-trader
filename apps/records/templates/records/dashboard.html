@@ -13,50 +13,19 @@
     <section class="filter-section">
         <form method="get" action="{% url 'records:dashboard' %}">
             <div class="filter-row">
-                <label class="checkbox-label">
-                    <input type="checkbox"
-                           name="sync_dates"
-                           {% if sync_dates %}checked{% endif %}>
-                    Apply same date range to both
-                </label>
-            </div>
-            <div class="dashboard-filter-row">
-                <h3>Sales Date Range</h3>
-                <div class="filter-row">
-                    <div class="filter-label-input-small">
-                        <label for="sales_start_date">Start Date:</label>
-                        <input type="date"
-                               id="sales_start_date"
-                               name="sales_start_date"
-                               value="{{ sales_start_date }}">
-                    </div>
-                    <div class="filter-label-input-small">
-                        <label for="sales_end_date">End Date:</label>
-                        <input type="date"
-                               id="sales_end_date"
-                               name="sales_end_date"
-                               value="{{ sales_end_date }}">
-                    </div>
+                <div class="filter-label-input-small">
+                    <label for="start_date">Start Date:</label>
+                    <input type="date"
+                           id="start_date"
+                           name="start_date"
+                           value="{{ start_date }}">
                 </div>
-            </div>
-            <hr />
-            <div class="dashboard-filter-row">
-                <h3>Purchases Date Range</h3>
-                <div class="filter-row">
-                    <div class="filter-label-input-small">
-                        <label for="purchases_start_date">Start Date:</label>
-                        <input type="date"
-                               id="purchases_start_date"
-                               name="purchases_start_date"
-                               value="{{ purchases_start_date }}">
-                    </div>
-                    <div class="filter-label-input-small">
-                        <label for="purchases_end_date">End Date:</label>
-                        <input type="date"
-                               id="purchases_end_date"
-                               name="purchases_end_date"
-                               value="{{ purchases_end_date }}">
-                    </div>
+                <div class="filter-label-input-small">
+                    <label for="end_date">End Date:</label>
+                    <input type="date"
+                           id="end_date"
+                           name="end_date"
+                           value="{{ end_date }}">
                 </div>
             </div>
             <div class="filter-actions">
