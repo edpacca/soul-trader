@@ -39,20 +39,24 @@
         <table class="summary-table">
             <thead>
                 <tr>
-                    <th>Total Sales</th>
-                    <th>Total Purchases</th>
                     <th>Net Profit</th>
+                    <th>Total Sales</th>
+                    <th>Sales Commission</th>
+                    <th>Sales Shipping</th>
+                    <th>Total Purchases</th>
                     <th>Sales Count</th>
                     <th>Purchases Count</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>{{ summary.total_sales }}</td>
-                    <td>{{ summary.total_purchases }}</td>
+                 <tr>
                     <td class="{% if summary.net_profit >= 0 %}profit-positive{% else %}profit-negative{% endif %}">
                         {{ summary.net_profit }}
                     </td>
+                    <td>{{ summary.total_sales }}</td>
+                    <td>{{ summary.total_commission }}</td>
+                    <td>{{ summary.total_sales_shipping }}</td>
+                    <td>{{ summary.total_purchases }}</td>
                     <td>{{ summary.sales_count }}</td>
                     <td>{{ summary.purchases_count }}</td>
                 </tr>

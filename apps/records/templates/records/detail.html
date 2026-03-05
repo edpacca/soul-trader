@@ -7,18 +7,30 @@
     <h1>{{ page_title }}</h1>
     <section class="summary-section">
         <h2>Summary Totals</h2>
-        <table class="summary-table">
+       <table class="summary-table">
             <thead>
                 <tr>
+                    {%if column_totals.net_value %}
+                        <th>Net Value</th>
+                    {% endif %}
                     <th>Total Price</th>
                     <th>Shipping Cost</th>
+                    {%if column_totals.commission_cost %}
+                        <th>Commission</th>
+                    {% endif %}
                     <th>Quantity</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
+                    {%if column_totals.net_value %}
+                        <td>{{ column_totals.net_value }}</td>
+                    {% endif %}
                     <td>{{ column_totals.total_price }}</td>
                     <td>{{ column_totals.shipping_cost }}</td>
+                    {%if column_totals.commission_cost %}
+                        <td>{{ column_totals.commission_cost }}</td>
+                    {% endif %}
                     <td>{{ column_totals.quantity }}</td>
                 </tr>
             </tbody>

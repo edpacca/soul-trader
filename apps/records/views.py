@@ -22,12 +22,14 @@ DEFAULT_PAGE_SIZE = 25
 SALES_COLUMNS = [
     # Date and Source filters are hardcoded so they don't have filter properties
     {"field": "date",          "label": "Date"},
+    {"field": "order_id",     "label": "Order ID", "filter": "text"},
     {"field": "item_name",     "label": "Item", "filter": "text", "placeholder": "e.g. Plains, Swamp..."},
     {"field": "quantity",      "label": "Quantity"},
     {"field": "unit_price",    "label": "Unit Price"},
     {"field": "total_price",   "label": "Total Price", "filter": "num_range"},
     {"field": "shipping_cost", "label": "Shipping"},
     {"field": "source",        "label": "Source"},
+    {"field": "commission_cost","label": "Commission", "has_toggle": True  },
     {"field": "post_code",     "label": "Post Code", "filter": "text", "has_toggle": True},
     {"field": "currency",      "label": "Currency", "has_toggle": True},
     {"field": "notes",         "label": "Notes", "filter": "text"},
@@ -36,6 +38,7 @@ SALES_COLUMNS = [
 PURCHASES_COLUMNS = [
     # Date and Source filters are hardcoded so they don't have filter properties
     {"field": "date",          "label": "Date"},
+    {"field": "order_id",     "label": "Order ID", "filter": "text"},
     {"field": "item_name",     "label": "Item", "filter": "text"},
     {"field": "quantity",      "label": "Quantity"},
     {"field": "unit_price",    "label": "Unit Price"},
@@ -45,6 +48,38 @@ PURCHASES_COLUMNS = [
     {"field": "currency",      "label": "Currency", "has_toggle": True},
     {"field": "notes",         "label": "Notes", "filter": "text"},
 ]
+
+RECORD_CONFIG = {
+    "sales": {
+        "model":           SalesRecord,
+        "columns":         SALES_COLUMNS,
+        "get_records":        AggregationService.get_sales,
+        "get_column_totals":  AggregationService.get_sales_column_totals,
+        "report_type":     "sales",
+        "page_title":      "Sales Records",
+        "section_heading": "Sales",
+        "detail_url_name": "records:sales_detail",
+        "filter_prefix":   "sales",
+        "table_id":        "sales-table",
+        "pdf_template":    "records/pdf_sales.html",
+        "pdf_filename":    "sales_report.pdf",
+    },
+    "purchases": {
+        "model":           PurchaseRecord,
+        "columns":         PURCHASES_COLUMNS,
+        "get_records":        AggregationService.get_purchases,
+        "get_column_totals":  AggregationService.get_column_totals,
+        "report_type":     "purchases",
+        "page_title":      "Purchases Records",
+        "section_heading": "Purchases",
+        "detail_url_name": "records:purchases_detail",
+        "filter_prefix":   "purchases",
+        "table_id":        "purchases-table",
+        "pdf_template":    "records/pdf_purchases.html",
+        "pdf_filename":    "purchases_report.pdf",
+    },
+}
+
 
 def _extract_filter_params(request, filters):
     return { filter_value: request.GET.get(f"{filter_value}", "") for filter_value in filters }
@@ -130,137 +165,83 @@ def dashboard(request):
     return render(request, "records/dashboard.html", context)
 
 
-def sales_detail(request):
+def _record_detail(request, record_type_key):
+    cfg = RECORD_CONFIG[record_type_key]
     start_date = _parse_date(request.GET.get("start_date", ""))
-    end_date = _parse_date(request.GET.get("end_date", ""))
-    page_size = _parse_page_size(request)
-
-    # Extract source filter
-    source_ids = request.GET.getlist("source_ids")
-    source_ids = [int(sid) for sid in source_ids if sid and sid.isdigit()]
-
-    sort_params = _extract_sort_params(request, "sales")
-    col_filters = _parse_filter_names(SALES_COLUMNS)
-    filters = _extract_filter_params(request, col_filters)
-    sales_kwargs = {**filters, **sort_params, "source_ids": source_ids}
-
-    qs = AggregationService.get_sales(
-        start_date, end_date, **sales_kwargs
-    )
-    column_totals = AggregationService.get_column_totals(qs)
-
-    paginator = Paginator(qs, page_size)
-    records = _get_page(paginator, request.GET.get("page"))
-
-    presets = ReportPreset.objects.filter(report_type="sales")
-    all_sources = Source.objects.all()
-
+    end_date   = _parse_date(request.GET.get("end_date", ""))
+    page_size  = _parse_page_size(request)
+    source_ids = [int(s) for s in request.GET.getlist("source_ids") if s.isdigit()]
+    sort_params  = _extract_sort_params(request, cfg["filter_prefix"])
+    filters      = _extract_filter_params(request, _parse_filter_names(cfg["columns"]))
+    query_kwargs = {**filters, **sort_params, "source_ids": source_ids}
+    qs            = cfg["get_records"](start_date, end_date, **query_kwargs)
+    column_totals = cfg["get_column_totals"](qs)
+    records = _get_page(Paginator(qs, page_size), request.GET.get("page"))
     context = {
-        "start_date": start_date.isoformat() if start_date else "",
-        "end_date": end_date.isoformat() if end_date else "",
-        "filters": filters,
-        "records": records,
-        "column_totals": column_totals,
-        "page_size": page_size,
-        "allowed_page_sizes": ALLOWED_PAGE_SIZES,
-        "sort_field": sort_params["sort_field"],
-        "sort_order": sort_params["sort_order"],
-        "page_title": "Sales Records",
-        "record_type": "sales",
-        "section_heading": "Sales",
-        "detail_url": reverse("records:sales_detail"),
-        "filter_prefix": "sales",
-        "table_id": "sales-table",
-        "columns": SALES_COLUMNS,
-        "presets": presets,
-        "all_sources": all_sources,
+        "start_date":          start_date.isoformat() if start_date else "",
+        "end_date":            end_date.isoformat() if end_date else "",
+        "filters":             filters,
+        "records":             records,
+        "column_totals":       column_totals,
+        "page_size":           page_size,
+        "allowed_page_sizes":  ALLOWED_PAGE_SIZES,
+        "sort_field":          sort_params["sort_field"],
+        "sort_order":          sort_params["sort_order"],
+        "page_title":          cfg["page_title"],
+        "record_type":         cfg["report_type"],
+        "section_heading":     cfg["section_heading"],
+        "detail_url":          reverse(cfg["detail_url_name"]),
+        "filter_prefix":       cfg["filter_prefix"],
+        "table_id":            cfg["table_id"],
+        "columns":             cfg["columns"],
+        "presets":             ReportPreset.objects.filter(report_type=cfg["report_type"]),
+        "all_sources":         Source.objects.all(),
         "selected_source_ids": source_ids,
         **_build_year_range(),
     }
     return render(request, "records/detail.html", context)
+
+
+def sales_detail(request):
+    return _record_detail(request, "sales")
 
 
 def purchases_detail(request):
-    start_date = _parse_date(request.GET.get("start_date", ""))
-    end_date = _parse_date(request.GET.get("end_date", ""))
-    page_size = _parse_page_size(request)
+    return _record_detail(request, "purchases")
 
-    # Extract source filter
-    source_ids = request.GET.getlist("source_ids")
-    source_ids = [int(sid) for sid in source_ids if sid and sid.isdigit()]
 
-    sort_params = _extract_sort_params(request, "purchases")
-    col_filters = _parse_filter_names(PURCHASES_COLUMNS)
-    filters = _extract_filter_params(request, col_filters)
-    purchases_kwargs = {**filters, **sort_params, "source_ids": source_ids}
+def _update_note(request, record_id, record_type_key):
+    record = get_object_or_404(RECORD_CONFIG[record_type_key]["model"], pk=record_id)
+    record.notes = request.POST.get("notes", "")[:255]
+    record.save(update_fields=["notes"])
+    return JsonResponse({"id": record.id, "notes": record.notes})
 
-    qs = AggregationService.get_purchases(
-        start_date, end_date,
-        **purchases_kwargs
-    )
-    column_totals = AggregationService.get_column_totals(qs)
 
-    paginator = Paginator(qs, page_size)
-    records = _get_page(paginator, request.GET.get("page"))
-
-    presets = ReportPreset.objects.filter(report_type="purchases")
-    all_sources = Source.objects.all()
-
-    context = {
-        "start_date": start_date.isoformat() if start_date else "",
-        "end_date": end_date.isoformat() if end_date else "",
-        "filters": filters,
-        "records": records,
-        "column_totals": column_totals,
-        "page_size": page_size,
-        "allowed_page_sizes": ALLOWED_PAGE_SIZES,
-        "sort_field": sort_params["sort_field"],
-        "sort_order": sort_params["sort_order"],
-        "page_title": "Purchases Records",
-        "record_type": "purchases",
-        "section_heading": "Purchases",
-        "detail_url": reverse("records:purchases_detail"),
-        "filter_prefix": "purchases",
-        "table_id": "purchases-table",
-        "columns": PURCHASES_COLUMNS,
-        "presets": presets,
-        "all_sources": all_sources,
-        "selected_source_ids": source_ids,
-        **_build_year_range(),
-    }
-    return render(request, "records/detail.html", context)
+def _delete_note(request, record_id, record_type_key):
+    record = get_object_or_404(RECORD_CONFIG[record_type_key]["model"], pk=record_id)
+    record.notes = ""
+    record.save(update_fields=["notes"])
+    return JsonResponse({"id": record.id, "notes": ""})
 
 
 @require_POST
 def update_sales_note(request, record_id):
-    record = get_object_or_404(SalesRecord, pk=record_id)
-    record.notes = request.POST.get("notes", "")[:255]
-    record.save(update_fields=["notes"])
-    return JsonResponse({"id": record.id, "notes": record.notes})
+    return _update_note(request, record_id, "sales")
 
 
 @require_http_methods(["DELETE"])
 def delete_sales_note(request, record_id):
-    record = get_object_or_404(SalesRecord, pk=record_id)
-    record.notes = ""
-    record.save(update_fields=["notes"])
-    return JsonResponse({"id": record.id, "notes": ""})
+    return _delete_note(request, record_id, "sales")
 
 
 @require_POST
 def update_purchase_note(request, record_id):
-    record = get_object_or_404(PurchaseRecord, pk=record_id)
-    record.notes = request.POST.get("notes", "")[:255]
-    record.save(update_fields=["notes"])
-    return JsonResponse({"id": record.id, "notes": record.notes})
+    return _update_note(request, record_id, "purchases")
 
 
 @require_http_methods(["DELETE"])
 def delete_purchase_note(request, record_id):
-    record = get_object_or_404(PurchaseRecord, pk=record_id)
-    record.notes = ""
-    record.save(update_fields=["notes"])
-    return JsonResponse({"id": record.id, "notes": ""})
+    return _delete_note(request, record_id, "purchases")
 
 
 def preset_list(request):
@@ -423,72 +404,38 @@ def _parse_columns(columns_param, all_columns):
     return [field_to_col[f] for f in valid]
 
 
-def sales_pdf_export(request):
+def _record_pdf_export(request, record_type_key):
+    cfg = RECORD_CONFIG[record_type_key]
     start_date = _parse_date(request.GET.get("start_date", ""))
-    end_date = _parse_date(request.GET.get("end_date", ""))
-
-    # Extract source filter
-    source_ids = request.GET.getlist("source_ids")
-    source_ids = [int(sid) for sid in source_ids if sid and sid.isdigit()]
-
-    sort_params = _extract_sort_params(request, "sales")
-    col_filters = _parse_filter_names(SALES_COLUMNS)
-    filters = _extract_filter_params(request, col_filters)
-    sales_kwargs = {**filters, **sort_params, "source_ids": source_ids}
-
-    qs = AggregationService.get_sales(start_date, end_date, **sales_kwargs)
-    column_totals = AggregationService.get_column_totals(qs)
-
-    columns = _parse_columns(request.GET.get("columns", ""), SALES_COLUMNS)
-
+    end_date   = _parse_date(request.GET.get("end_date", ""))
+    source_ids = [int(s) for s in request.GET.getlist("source_ids") if s.isdigit()]
+    sort_params  = _extract_sort_params(request, cfg["filter_prefix"])
+    filters      = _extract_filter_params(request, _parse_filter_names(cfg["columns"]))
+    query_kwargs = {**filters, **sort_params, "source_ids": source_ids}
+    qs            = cfg["get_records"](start_date, end_date, **query_kwargs)
+    column_totals = cfg["get_column_totals"](qs)
+    columns = _parse_columns(request.GET.get("columns", ""), cfg["columns"])
     context = {
-        "records": qs,
+        "records":       qs,
         "column_totals": column_totals,
-        "columns": columns,
-        "start_date": start_date.isoformat() if start_date else "All",
-        "end_date": end_date.isoformat() if end_date else "All",
-        "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "columns":       columns,
+        "start_date":    start_date.isoformat() if start_date else "All",
+        "end_date":      end_date.isoformat() if end_date else "All",
+        "generated_at":  datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
-
-    content, content_type_str = _render_pdf("records/pdf_sales.html", context)
-    content_type = "text/html" if content_type_str == "html" else "application_pdf"
+    content, content_type_str = _render_pdf(cfg["pdf_template"], context)
+    content_type = "text/html" if content_type_str == "html" else "application/pdf"
     response = HttpResponse(content, content_type=content_type)
-    response["Content-Disposition"] = 'attachment; filename="sales_report.pdf"'
+    response["Content-Disposition"] = f'attachment; filename="{cfg["pdf_filename"]}"'
     return response
+
+
+def sales_pdf_export(request):
+    return _record_pdf_export(request, "sales")
 
 
 def purchases_pdf_export(request):
-    start_date = _parse_date(request.GET.get("start_date", ""))
-    end_date = _parse_date(request.GET.get("end_date", ""))
-
-    # Extract source filter
-    source_ids = request.GET.getlist("source_ids")
-    source_ids = [int(sid) for sid in source_ids if sid and sid.isdigit()]
-
-    sort_params = _extract_sort_params(request, "purchases")
-    col_filters = _parse_filter_names(PURCHASES_COLUMNS)
-    filters = _extract_filter_params(request, col_filters)
-    purchases_kwargs = {**filters, **sort_params, "source_ids": source_ids}
-
-    qs = AggregationService.get_purchases(start_date, end_date, **purchases_kwargs)
-    column_totals = AggregationService.get_column_totals(qs)
-
-    columns = _parse_columns(request.GET.get("columns", ""), PURCHASES_COLUMNS)
-
-    context = {
-        "records": qs,
-        "column_totals": column_totals,
-        "columns": columns,
-        "start_date": start_date.isoformat() if start_date else "All",
-        "end_date": end_date.isoformat() if end_date else "All",
-        "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-    }
-
-    content, content_type_str = _render_pdf("records/pdf_purchases.html", context)
-    content_type = "text/html" if content_type_str == "html" else "application_pdf"
-    response = HttpResponse(content, content_type=content_type)
-    response["Content-Disposition"] = 'attachment; filename="purchases_report.pdf"'
-    return response
+    return _record_pdf_export(request, "purchases")
 
 
 @login_required

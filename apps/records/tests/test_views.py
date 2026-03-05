@@ -20,6 +20,7 @@ class TestDashboardView(TestCase):
             unit_price=Decimal("5.00"),
             total_price=Decimal("50.00"),
             shipping_cost=Decimal("3.50"),
+            commission_cost=Decimal("0.50"),
             post_code="SW1A 1AA",
         )
         SalesRecord.objects.create(
@@ -29,6 +30,7 @@ class TestDashboardView(TestCase):
             unit_price=Decimal("12.00"),
             total_price=Decimal("60.00"),
             shipping_cost=Decimal("4.00"),
+            commission_cost=Decimal("0.50"),
             post_code="EC1A 1BB",
         )
         PurchaseRecord.objects.create(
@@ -67,7 +69,9 @@ class TestDashboardView(TestCase):
         context = response.context
         self.assertEqual(context["summary"]["total_sales"], Decimal("50.00"))
         self.assertEqual(context["summary"]["total_purchases"], Decimal("50.00"))
-        self.assertEqual(context["summary"]["net_profit"], Decimal("0.00"))
+        self.assertEqual(context["summary"]["total_sales_shipping"], Decimal("3.50"))
+        self.assertEqual(context["summary"]["total_commission"], Decimal("0.50"))
+        self.assertEqual(context["summary"]["net_profit"], Decimal("-4.00"))
         self.assertEqual(context["summary"]["sales_count"], 1)
         self.assertEqual(context["summary"]["purchases_count"], 1)
 
@@ -83,7 +87,9 @@ class TestDashboardView(TestCase):
         context = response.context
         self.assertEqual(context["summary"]["total_sales"], Decimal("110.00"))
         self.assertEqual(context["summary"]["total_purchases"], Decimal("100.00"))
-        self.assertEqual(context["summary"]["net_profit"], Decimal("10.00"))
+        self.assertEqual(context["summary"]["net_profit"], Decimal("1.50"))
+        self.assertEqual(context["summary"]["total_sales_shipping"], Decimal("7.50"))
+        self.assertEqual(context["summary"]["total_commission"], Decimal("1.00"))
         self.assertEqual(context["summary"]["sales_count"], 2)
         self.assertEqual(context["summary"]["purchases_count"], 2)
 
@@ -99,6 +105,8 @@ class TestDashboardView(TestCase):
         context = response.context
         self.assertEqual(context["summary"]["total_sales"], Decimal("0"))
         self.assertEqual(context["summary"]["total_purchases"], Decimal("0"))
+        self.assertEqual(context["summary"]["total_sales_shipping"], Decimal("0"))
+        self.assertEqual(context["summary"]["total_commission"], Decimal("0"))
         self.assertEqual(context["summary"]["net_profit"], Decimal("0"))
 
     def test_dashboard_invalid_dates_use_defaults(self):
@@ -120,6 +128,7 @@ class TestPaginationBehaviour(TestCase):
                 unit_price=Decimal("10.00"),
                 total_price=Decimal("10.00"),
                 shipping_cost=Decimal("1.00"),
+                commission_cost=Decimal("0.50"),
                 post_code="SW1A 1AA",
             )
 
@@ -231,6 +240,7 @@ class TestSalesDetailView(TestCase):
             unit_price=Decimal("5.00"),
             total_price=Decimal("50.00"),
             shipping_cost=Decimal("3.50"),
+            commission_cost=Decimal("0.50"),
             post_code="SW1A 1AA",
         )
         SalesRecord.objects.create(
@@ -240,6 +250,7 @@ class TestSalesDetailView(TestCase):
             unit_price=Decimal("12.00"),
             total_price=Decimal("60.00"),
             shipping_cost=Decimal("4.00"),
+            commission_cost=Decimal("0.50"),
             post_code="EC1A 1BB",
         )
 

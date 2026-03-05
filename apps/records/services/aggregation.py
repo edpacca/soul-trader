@@ -19,6 +19,7 @@ SORTABLE_FIELDS = {
     "shipping_cost",
     "post_code",
     "currency",
+    "commission_cost",
 }
 
 
@@ -33,6 +34,7 @@ class AggregationService:
         post_code: str = "",
         notes: str = "",
         source_ids: list = None,
+        order_id: str = "",
     ) -> QuerySet:
         if item_name:
             terms = [t.strip() for t in item_name.split(",") if t.strip()]
@@ -55,6 +57,8 @@ class AggregationService:
             qs = qs.filter(notes__icontains=notes)
         if source_ids:
             qs = qs.filter(source_id__in=source_ids)
+        if order_id:
+            qs = qs.filter(order_id__icontains=order_id)
         return qs
 
     @staticmethod
@@ -69,20 +73,22 @@ class AggregationService:
         return qs
 
     @staticmethod
-    def get_sales(
+    def get_records(
+        model,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
         *,
         item_name: str = "",
         total_price_min: str = "",
         total_price_max: str = "",
+        order_id: str = "",
         post_code: str = "",
         notes: str = "",
         source_ids: list = None,
         sort_field: str = "",
         sort_order: str = "asc",
     ) -> QuerySet:
-        qs = SalesRecord.objects.all()
+        qs = model.objects.all()
         if start_date is not None:
             qs = qs.filter(date__gte=start_date)
         if end_date is not None:
@@ -95,40 +101,18 @@ class AggregationService:
             post_code=post_code,
             notes=notes,
             source_ids=source_ids,
+            order_id=order_id
         )
         qs = AggregationService._apply_sort(qs, sort_field, sort_order)
         return qs
 
     @staticmethod
-    def get_purchases(
-        start_date: Optional[date] = None,
-        end_date: Optional[date] = None,
-        *,
-        item_name: str = "",
-        total_price_min: str = "",
-        total_price_max: str = "",
-        post_code: str = "",
-        notes: str = "",
-        source_ids: list = None,
-        sort_field: str = "",
-        sort_order: str = "asc",
-    ) -> QuerySet:
-        qs = PurchaseRecord.objects.all()
-        if start_date is not None:
-            qs = qs.filter(date__gte=start_date)
-        if end_date is not None:
-            qs = qs.filter(date__lte=end_date)
-        qs = AggregationService._apply_filters(
-            qs,
-            item_name=item_name,
-            price_min=total_price_min,
-            price_max=total_price_max,
-            post_code=post_code,
-            notes=notes,
-            source_ids=source_ids,
-        )
-        qs = AggregationService._apply_sort(qs, sort_field, sort_order)
-        return qs
+    def get_sales(start_date: Optional[date] = None, end_date: Optional[date] = None, **kwargs) -> QuerySet:
+        return AggregationService.get_records(SalesRecord, start_date, end_date, **kwargs)
+
+    @staticmethod
+    def get_purchases(start_date: Optional[date] = None, end_date: Optional[date] = None, **kwargs) -> QuerySet:
+        return AggregationService.get_records(PurchaseRecord, start_date, end_date, **kwargs)
 
     @staticmethod
     def get_column_totals(qs: QuerySet) -> dict:
@@ -141,6 +125,26 @@ class AggregationService:
             "total_price": round(agg["total_price"] or Decimal("0"), 2),
             "shipping_cost": round(agg["shipping_cost"] or Decimal("0"), 2),
             "quantity": agg["quantity"] or 0,
+        }
+
+    @staticmethod
+    def get_sales_column_totals(qs: QuerySet) -> dict:
+        agg = qs.aggregate(
+            total_price=Sum("total_price"),
+            shipping_cost=Sum("shipping_cost"),
+            quantity=Sum("quantity"),
+            commission_cost=Sum("commission_cost")
+        )
+        total_price = round(agg["total_price"] or Decimal("0"), 2)
+        shipping_cost = round(agg["shipping_cost"] or Decimal("0"), 2)
+        commission_cost = round(agg["commission_cost"] or Decimal("0"), 2)
+        net_value = total_price - shipping_cost - commission_cost
+        return {
+            "total_price": total_price,
+            "shipping_cost": shipping_cost,
+            "commission_cost": commission_cost,
+            "quantity": agg["quantity"] or 0,
+            "net_value": net_value
         }
 
     @staticmethod
@@ -159,6 +163,12 @@ class AggregationService:
         total_sales = round(
             sales_qs.aggregate(total=Sum("total_price"))["total"] or Decimal("0"), 2
         )
+        total_sales_commission = round(
+            sales_qs.aggregate(total=Sum("commission_cost"))["total"] or Decimal("0"), 2
+        )
+        total_sales_shipping = round(
+            sales_qs.aggregate(total=Sum("shipping_cost"))["total"] or Decimal("0"), 2
+        )
         total_purchases = round(
             purchases_qs.aggregate(total=Sum("total_price"))["total"] or Decimal("0"), 2
         )
@@ -168,7 +178,7 @@ class AggregationService:
             "total_purchases": total_purchases,
             "total_commission": total_sales_commission,
             "total_sales_shipping": total_sales_shipping,
-            "net_profit": total_sales - total_purchases,
+            "net_profit": total_sales - total_purchases - total_sales_commission - total_sales_shipping,
             "sales_count": sales_qs.count(),
             "purchases_count": purchases_qs.count(),
         }
