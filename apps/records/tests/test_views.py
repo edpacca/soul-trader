@@ -20,6 +20,7 @@ class TestDashboardView(TestCase):
             unit_price=Decimal("5.00"),
             total_price=Decimal("50.00"),
             shipping_cost=Decimal("3.50"),
+            commission_cost=Decimal("0.50"),
             post_code="SW1A 1AA",
         )
         SalesRecord.objects.create(
@@ -29,6 +30,7 @@ class TestDashboardView(TestCase):
             unit_price=Decimal("12.00"),
             total_price=Decimal("60.00"),
             shipping_cost=Decimal("4.00"),
+            commission_cost=Decimal("0.50"),
             post_code="EC1A 1BB",
         )
         PurchaseRecord.objects.create(
@@ -58,10 +60,8 @@ class TestDashboardView(TestCase):
     def test_dashboard_with_date_filter(self):
         response = self.client.get(
             self.url, {
-                "sales_start_date": "2024-01-01",
-                "sales_end_date": "2024-01-31",
-                "purchases_start_date": "2024-01-01",
-                "purchases_end_date": "2024-01-31",
+                "start_date": "2024-01-01",
+                "end_date": "2024-01-31",
             }
         )
         self.assertEqual(response.status_code, 200)
@@ -69,17 +69,17 @@ class TestDashboardView(TestCase):
         context = response.context
         self.assertEqual(context["summary"]["total_sales"], Decimal("50.00"))
         self.assertEqual(context["summary"]["total_purchases"], Decimal("50.00"))
-        self.assertEqual(context["summary"]["net_profit"], Decimal("0.00"))
+        self.assertEqual(context["summary"]["total_sales_shipping"], Decimal("3.50"))
+        self.assertEqual(context["summary"]["total_commission"], Decimal("0.50"))
+        self.assertEqual(context["summary"]["net_profit"], Decimal("-4.00"))
         self.assertEqual(context["summary"]["sales_count"], 1)
         self.assertEqual(context["summary"]["purchases_count"], 1)
 
     def test_dashboard_full_range(self):
         response = self.client.get(
             self.url, {
-                "sales_start_date": "2024-01-01",
-                "sales_end_date": "2024-12-31",
-                "purchases_start_date": "2024-01-01",
-                "purchases_end_date": "2024-12-31",
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
             }
         )
         self.assertEqual(response.status_code, 200)
@@ -87,17 +87,17 @@ class TestDashboardView(TestCase):
         context = response.context
         self.assertEqual(context["summary"]["total_sales"], Decimal("110.00"))
         self.assertEqual(context["summary"]["total_purchases"], Decimal("100.00"))
-        self.assertEqual(context["summary"]["net_profit"], Decimal("10.00"))
+        self.assertEqual(context["summary"]["net_profit"], Decimal("1.50"))
+        self.assertEqual(context["summary"]["total_sales_shipping"], Decimal("7.50"))
+        self.assertEqual(context["summary"]["total_commission"], Decimal("1.00"))
         self.assertEqual(context["summary"]["sales_count"], 2)
         self.assertEqual(context["summary"]["purchases_count"], 2)
 
     def test_dashboard_no_results(self):
         response = self.client.get(
             self.url, {
-                "sales_start_date": "2025-01-01",
-                "sales_end_date": "2025-12-31",
-                "purchases_start_date": "2025-01-01",
-                "purchases_end_date": "2025-12-31",
+                "start_date": "2025-01-01",
+                "end_date": "2025-12-31",
             }
         )
         self.assertEqual(response.status_code, 200)
@@ -105,11 +105,13 @@ class TestDashboardView(TestCase):
         context = response.context
         self.assertEqual(context["summary"]["total_sales"], Decimal("0"))
         self.assertEqual(context["summary"]["total_purchases"], Decimal("0"))
+        self.assertEqual(context["summary"]["total_sales_shipping"], Decimal("0"))
+        self.assertEqual(context["summary"]["total_commission"], Decimal("0"))
         self.assertEqual(context["summary"]["net_profit"], Decimal("0"))
 
     def test_dashboard_invalid_dates_use_defaults(self):
         response = self.client.get(
-            self.url, {"sales_start_date": "not-a-date", "sales_end_date": "also-bad"}
+            self.url, {"start_date": "not-a-date", "end_date": "also-bad"}
         )
         self.assertEqual(response.status_code, 200)
 
@@ -126,6 +128,7 @@ class TestPaginationBehaviour(TestCase):
                 unit_price=Decimal("10.00"),
                 total_price=Decimal("10.00"),
                 shipping_cost=Decimal("1.00"),
+                commission_cost=Decimal("0.50"),
                 post_code="SW1A 1AA",
             )
 
@@ -237,6 +240,7 @@ class TestSalesDetailView(TestCase):
             unit_price=Decimal("5.00"),
             total_price=Decimal("50.00"),
             shipping_cost=Decimal("3.50"),
+            commission_cost=Decimal("0.50"),
             post_code="SW1A 1AA",
         )
         SalesRecord.objects.create(
@@ -246,6 +250,7 @@ class TestSalesDetailView(TestCase):
             unit_price=Decimal("12.00"),
             total_price=Decimal("60.00"),
             shipping_cost=Decimal("4.00"),
+            commission_cost=Decimal("0.50"),
             post_code="EC1A 1BB",
         )
 
@@ -407,10 +412,8 @@ class TestDashboardDetailButtons(TestCase):
     def test_detail_button_urls_with_dates(self):
         response = self.client.get(
             self.url, {
-                "sales_start_date": "2024-01-01",
-                "sales_end_date": "2024-12-31",
-                "purchases_start_date": "2024-06-01",
-                "purchases_end_date": "2024-06-30",
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
             }
         )
         self.assertEqual(
@@ -419,23 +422,10 @@ class TestDashboardDetailButtons(TestCase):
         )
         self.assertEqual(
             response.context["purchases_detail_url"],
-            "/purchases/?start_date=2024-06-01&end_date=2024-06-30"
+            "/purchases/?start_date=2024-01-01&end_date=2024-12-31"
         )
-
-    def test_sync_dates_copies_sales_to_purchases(self):
-        response = self.client.get(
-            self.url, {
-                "sync_dates": "on",
-                "sales_start_date": "2024-01-01",
-                "sales_end_date": "2024-12-31",
-            }
-        )
-        self.assertEqual(response.context["sales_start_date"], "2024-01-01")
-        self.assertEqual(response.context["purchases_start_date"], "2024-01-01")
 
     def test_dashboard_no_default_date_filter(self):
         response = self.client.get(self.url)
-        self.assertEqual(response.context["sales_start_date"], "")
-        self.assertEqual(response.context["sales_end_date"], "")
-        self.assertEqual(response.context["purchases_start_date"], "")
-        self.assertEqual(response.context["purchases_end_date"], "")
+        self.assertEqual(response.context["start_date"], "")
+        self.assertEqual(response.context["end_date"], "")

@@ -16,6 +16,7 @@ class TestAggregationService(TestCase):
             unit_price=Decimal("5.00"),
             total_price=Decimal("50.00"),
             shipping_cost=Decimal("3.50"),
+            commission_cost=Decimal("0.70"),
             post_code="SW1A 1AA",
         )
         SalesRecord.objects.create(
@@ -25,6 +26,7 @@ class TestAggregationService(TestCase):
             unit_price=Decimal("20.00"),
             total_price=Decimal("100.00"),
             shipping_cost=Decimal("4.00"),
+            commission_cost=Decimal("0.50"),
             post_code="EC1A 1BB",
         )
         PurchaseRecord.objects.create(
@@ -47,14 +49,18 @@ class TestAggregationService(TestCase):
 
     def test_get_summary(self):
         summary = AggregationService.get_summary(date(2024, 1, 1), date(2024, 12, 31))
+        self.assertEqual(summary["total_sales_shipping"], Decimal("7.50"))
+        self.assertEqual(summary["total_commission"], Decimal("1.20"))
         self.assertEqual(summary["total_sales"], Decimal("150.00"))
         self.assertEqual(summary["total_purchases"], Decimal("50.00"))
-        self.assertEqual(summary["net_profit"], Decimal("100.00"))
+        self.assertEqual(summary["net_profit"], Decimal("91.30"))
         self.assertEqual(summary["sales_count"], 2)
         self.assertEqual(summary["purchases_count"], 1)
 
     def test_get_summary_empty_range(self):
         summary = AggregationService.get_summary(date(2025, 1, 1), date(2025, 12, 31))
+        self.assertEqual(summary["total_sales_shipping"], Decimal("0"))
+        self.assertEqual(summary["total_commission"], Decimal("0"))
         self.assertEqual(summary["total_sales"], Decimal("0"))
         self.assertEqual(summary["total_purchases"], Decimal("0"))
         self.assertEqual(summary["net_profit"], Decimal("0"))

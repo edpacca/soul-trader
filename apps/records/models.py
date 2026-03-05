@@ -19,6 +19,7 @@ class Source(models.Model):
 
 class BaseRecord(models.Model):
     uuid = models.UUIDField(default=uuid_lib.uuid4, editable=False, unique=True, db_index=True)
+    order_id = models.CharField(max_length=255, blank=True, default="")
     date = models.DateField()
     item_name = models.CharField(max_length=255)
     quantity = models.PositiveIntegerField()
@@ -46,6 +47,7 @@ class BaseRecord(models.Model):
 
 
 class SalesRecord(BaseRecord):
+    commission_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, default=0.00)
     class Meta(BaseRecord.Meta):
         verbose_name = "Sales Record"
         verbose_name_plural = "Sales Records"
