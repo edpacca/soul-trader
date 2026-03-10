@@ -129,8 +129,11 @@ Requires Docker. The dump must have been created using the DB Dump export in the
 # Start the database only
 docker compose up -d db
 
-# Drop and recreate the database
-docker compose exec db psql -U postgres -c "DROP DATABASE IF EXISTS django_client; CREATE DATABASE django_client;"
+# Drop the database
+docker compose exec db dropdb -U postgres --if-exists django_client 
+
+# Create new database
+docker compose exec db createdb -U postgres django_client
 
 # Restore the dump
 cat db_dump_YYYY-MM-DD.sql | docker compose exec -T db psql -U postgres -d django_client
