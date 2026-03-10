@@ -57,3 +57,4 @@ htmlcov/
 nginx/certs/*.crt
 nginx/certs/*.key
 
+backups/
