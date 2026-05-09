@@ -1,6 +1,8 @@
+import json
 from datetime import date
 from decimal import Decimal
 
+from django.contrib.auth.models import User
 from django.core.paginator import Page
 from django.test import TestCase, Client
 from django.urls import reverse
@@ -429,3 +431,90 @@ class TestDashboardDetailButtons(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.context["start_date"], "")
         self.assertEqual(response.context["end_date"], "")
+
+
+class TestChartDataView(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.url = reverse("records:chart_data")
+        self.user = User.objects.create_user(username="testuser", password="pass")
+        self.client.force_login(self.user)
+
+        SalesRecord.objects.create(
+            date=date(2024, 1, 15),
+            item_name="Widget A",
+            quantity=10,
+            unit_price=Decimal("5.00"),
+            total_price=Decimal("50.00"),
+            shipping_cost=Decimal("3.50"),
+            commission_cost=Decimal("0.50"),
+            post_code="SW1A 1AA",
+        )
+        SalesRecord.objects.create(
+            date=date(2024, 2, 20),
+            item_name="Widget B",
+            quantity=5,
+            unit_price=Decimal("12.00"),
+            total_price=Decimal("60.00"),
+            shipping_cost=Decimal("4.00"),
+            commission_cost=Decimal("0.50"),
+            post_code="EC1A 1BB",
+        )
+        PurchaseRecord.objects.create(
+            date=date(2024, 1, 10),
+            item_name="Raw Material X",
+            quantity=100,
+            unit_price=Decimal("0.50"),
+            total_price=Decimal("50.00"),
+            shipping_cost=Decimal("5.00"),
+            post_code="N1 9GU",
+        )
+
+    def _get_json(self, params):
+        response = self.client.get(self.url, params)
+        self.assertEqual(response.status_code, 200)
+        return json.loads(response.content)
+
+    def test_chart_data_sales_by_month(self):
+        data = self._get_json({"record_type": "sales", "group_by": "month"})
+        self.assertIn("labels", data)
+        self.assertIn("datasets", data)
+        self.assertEqual(len(data["datasets"]), 1)
+        self.assertEqual(data["datasets"][0]["label"], "Sales")
+        # Two distinct months: Jan and Feb 2024
+        self.assertEqual(len(data["labels"]), 2)
+
+    def test_chart_data_purchases_by_day(self):
+        data = self._get_json({"record_type": "purchases", "group_by": "day"})
+        self.assertEqual(len(data["datasets"]), 1)
+        self.assertEqual(data["datasets"][0]["label"], "Purchases")
+        self.assertEqual(len(data["labels"]), 1)
+        self.assertEqual(data["labels"][0], "2024-01-10")
+
+    def test_chart_data_combined(self):
+        data = self._get_json({"record_type": "combined", "group_by": "month"})
+        labels = [ds["label"] for ds in data["datasets"]]
+        self.assertIn("Sales", labels)
+        self.assertIn("Purchases", labels)
+        self.assertIn("Net Profit", labels)
+        self.assertEqual(len(data["datasets"]), 3)
+
+    def test_chart_data_respects_date_filter(self):
+        data = self._get_json({
+            "record_type": "sales",
+            "group_by": "month",
+            "start_date": "2024-01-01",
+            "end_date": "2024-01-31",
+        })
+        self.assertEqual(len(data["labels"]), 1)
+        self.assertEqual(data["labels"][0], "2024-01-01")
+
+    def test_chart_data_requires_login(self):
+        self.client.logout()
+        response = self.client.get(self.url, {"record_type": "sales"})
+        self.assertNotEqual(response.status_code, 200)
+
+    def test_chart_data_invalid_group_by_defaults_to_month(self):
+        data = self._get_json({"record_type": "sales", "group_by": "invalid"})
+        # Should return monthly grouping (2 distinct months)
+        self.assertEqual(len(data["labels"]), 2)

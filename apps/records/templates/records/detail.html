@@ -36,6 +36,7 @@
             </tbody>
         </table>
     </section>
+    {% include "records/_chart.html" with chart_record_type=record_type %}
     <section class="filter-section">
         <form method="get" action="{{ detail_url }}">
             <h3>Filters</h3>

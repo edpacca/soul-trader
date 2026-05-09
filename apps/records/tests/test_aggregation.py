@@ -178,3 +178,38 @@ class TestAggregationService(TestCase):
         self.assertEqual(summary["total_sales"], Decimal("50.00"))
         self.assertEqual(summary["sales_count"], 1)
         self.assertEqual(summary["purchases_count"], 1)
+
+    def test_get_time_series_monthly_sales(self):
+        qs = AggregationService.get_sales()
+        series = AggregationService.get_time_series(qs, group_by="month")
+        self.assertEqual(len(series), 2)
+        # Sorted ascending
+        self.assertEqual(series[0]["period"], "2024-01-01")
+        self.assertEqual(series[0]["total"], Decimal("50.0"))
+        self.assertEqual(series[1]["period"], "2024-02-01")
+        self.assertEqual(series[1]["total"], Decimal("100.0"))
+
+    def test_get_time_series_daily_purchases(self):
+        qs = AggregationService.get_purchases()
+        series = AggregationService.get_time_series(qs, group_by="day")
+        self.assertEqual(len(series), 1)
+        self.assertEqual(series[0]["period"], "2024-01-10")
+        self.assertEqual(series[0]["total"], Decimal("50.0"))
+
+    def test_get_time_series_yearly(self):
+        qs = AggregationService.get_sales()
+        series = AggregationService.get_time_series(qs, group_by="year")
+        self.assertEqual(len(series), 1)
+        self.assertEqual(series[0]["period"], "2024-01-01")
+        self.assertEqual(series[0]["total"], Decimal("150.0"))
+
+    def test_get_time_series_invalid_group_by_defaults_to_month(self):
+        qs = AggregationService.get_sales()
+        series = AggregationService.get_time_series(qs, group_by="invalid")
+        # Falls back to monthly — 2 months
+        self.assertEqual(len(series), 2)
+
+    def test_get_time_series_empty_queryset(self):
+        qs = AggregationService.get_sales(date(2030, 1, 1), date(2030, 12, 31))
+        series = AggregationService.get_time_series(qs, group_by="month")
+        self.assertEqual(series, [])

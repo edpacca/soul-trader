@@ -119,7 +119,8 @@ class DefaultCSVParser(CSVParser):
                         row_errors.append("invalid quantity")
                 elif field_name in ("unit_price", "total_price", "shipping_cost"):
                     try:
-                        parsed[field_name] = Decimal(raw_value)
+                        normalized_value = raw_value.replace(",", ".")
+                        parsed[field_name] = Decimal(normalized_value)
                     except (InvalidOperation, TypeError):
                         row_errors.append(f"invalid {field_name}")
                 elif field_name == "post_code":
@@ -202,7 +203,8 @@ class DefaultCSVParser(CSVParser):
             for field in ("unit_price", "total_price", "shipping_cost"):
                 val = normalised_row.get(field, "").strip()
                 try:
-                    parsed[field] = Decimal(val)
+                    normalized_value = val.replace(",", ".")
+                    parsed[field] = Decimal(normalized_value)
                 except (InvalidOperation, TypeError):
                     row_errors.append(f"invalid {field}")
 

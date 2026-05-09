@@ -57,7 +57,7 @@
         html = '<p style="color: #c00; padding: 8px; background: #fef0f0; border: 1px solid #f5c6cb; border-radius: 4px;">' + data.error + '</p>';
       } else {
         if (data.errors && data.errors.length > 0) {
-          html += '<div style="padding: 8px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; margin-bottom: 10px;">';
+          html += '<div style="padding: 8px; background: #2b2b2b; border: 1px solid #ffc107; border-radius: 4px; margin-bottom: 10px;">';
           html += '<strong>Parsing warnings/errors:</strong><ul style="margin: 5px 0 0 20px;">';
           data.errors.forEach(function(err) {
             html += '<li>' + err + '</li>';

@@ -69,6 +69,7 @@
                class="detail-button">View Purchases Details</a>
         </div>
     </section>
+    {% include "records/_chart.html" with chart_record_type="combined" %}
     <section class="export-section">
         <h2>Export Data</h2>
         {% include "records/_report_controls.html" with report_type="combined" presets=presets %}

@@ -27,7 +27,7 @@
       </div>
     </div>
   </div>
-  <div id="mapping-validation-errors" style="display: none; padding: 8px 12px; background: #fef0f0; border: 1px solid #f5c6cb; border-radius: 4px; color: #721c24; margin-bottom: 10px;"></div>
+  <div id="mapping-validation-errors" style="display: none; padding: 8px 12px; background: #3b3b3b; border: 1px solid #f5c6cb; border-radius: 4px; color: #721c24; margin-bottom: 10px;"></div>
   <details style="margin-bottom: 8px;">
     <summary style="cursor: pointer; color: #417690; font-weight: bold;">Raw JSON (advanced)</summary>
     <div style="margin-top: 5px;">
@@ -78,7 +78,7 @@
     fields.forEach(function(f) {
       var tr = document.createElement('tr');
       var isMapped = mappedFields.has(f.name);
-      var bgColor = f.required && !isMapped ? '#fff3cd' : (isMapped ? '#d4edda' : '#fff');
+      var bgColor = f.required && !isMapped ? '#fff3cd' : (isMapped ? '#7bbd8a' : '#fff');
       tr.style.backgroundColor = bgColor;
       tr.innerHTML =
         '<td style="color: black; padding: 4px 8px; border-bottom: 1px solid #eee;">' + f.name + (f.required ? ' <strong style="color: #c00;">*</strong>' : '') + '</td>' +
