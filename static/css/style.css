@@ -68,6 +68,24 @@ td {
 	border-bottom: 1px solid var(--border-color);
 }
 
+.notes-table th,
+.notes-table td {
+	vertical-align: top;
+}
+
+.notes-table td.notes-item-name .notes-item-name {
+	overflow: auto;
+	white-space: pre;
+	max-width: 130px;
+}
+.notes-table td.notes-column .notes-column-container {
+	width: 500px;
+	max-height: 500px;
+	resize: both;
+	overflow: auto;
+	white-space: pre;
+}
+
 th {
 	background-color: var(--bg2);
 	font-weight: 600;
@@ -250,7 +268,7 @@ a.detail-button.small {
 	padding: 2rem;
 	border-radius: 8px;
 	width: 90%;
-	max-width: 500px;
+	max-width: 900px;
 	border: 1px solid var(--border-color);
 }
 
@@ -267,8 +285,11 @@ a.detail-button.small {
 	background: var(--bg0);
 	color: var(--text);
 	font-family: inherit;
-	font-size: 0.95rem;
-	resize: vertical;
+	min-height: 500px;
+	font-size: 1rem;
+	resize: both;
+	overflow: auto;
+	white-space: pre;
 }
 
 .modal-actions {
