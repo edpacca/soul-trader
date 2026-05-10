@@ -6,9 +6,11 @@
     var saveBtn = document.getElementById('save-note-btn');
     var deleteBtn = document.getElementById('delete-note-btn');
     var cancelBtn = document.getElementById('cancel-note-btn');
+    var readableToggle = document.getElementById('readable-format-toggle');
     var currentRecordId = null;
     var currentRecordType = null;
     var currentButton = null;
+    var inReadableFormat = false;
 
     function getCsrfToken() {
         var cookie = document.cookie.split(';').find(function(c) {
@@ -24,8 +26,19 @@
 
     function updateCharCount() {
         if (charCount && noteText) {
-            charCount.textContent = noteText.value.length + ' / 255';
+            charCount.textContent = noteText.value.length + ' / 5000';
         }
+    }
+
+    function toggleReadableFormat() {
+        if (readableToggle.checked) {
+            noteText.value = noteText.value.replace(/ \| /g, ' |\n');
+            inReadableFormat = true;
+        } else {
+            noteText.value = noteText.value.replace(/ \|\n/g, ' | ');
+            inReadableFormat = false;
+        }
+        updateCharCount();
     }
 
     function openModal(button) {
@@ -33,7 +46,9 @@
         currentRecordType = button.getAttribute('data-record-type');
         currentButton = button;
         noteText.value = button.getAttribute('data-note') || '';
-        updateCharCount();
+        inReadableFormat = false;
+        readableToggle.checked = true;
+        toggleReadableFormat();
         modal.style.display = 'flex';
         noteText.focus();
     }
@@ -47,6 +62,10 @@
 
     function saveNote() {
         if (!currentRecordId || !currentRecordType) return;
+        var textToSave = noteText.value;
+        if (inReadableFormat) {
+            textToSave = textToSave.replace(/ \|\n/g, ' | ');
+        }
         var url = '/' + currentRecordType + '/' + currentRecordId + '/note/';
         var xhr = new XMLHttpRequest();
         xhr.open('POST', url, true);
@@ -67,7 +86,7 @@
         xhr.onerror = function() {
             alert('Network error. Please try again.');
         };
-        xhr.send('notes=' + encodeURIComponent(noteText.value));
+        xhr.send('notes=' + encodeURIComponent(textToSave));
     }
 
     function deleteNote() {
@@ -102,6 +121,7 @@
     });
 
     if (noteText) noteText.addEventListener('input', updateCharCount);
+    if (readableToggle) readableToggle.addEventListener('change', toggleReadableFormat);
     if (saveBtn) saveBtn.addEventListener('click', saveNote);
     if (deleteBtn) deleteBtn.addEventListener('click', deleteNote);
     if (cancelBtn) cancelBtn.addEventListener('click', closeModal);

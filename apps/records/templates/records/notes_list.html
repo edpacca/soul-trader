@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load query_helpers %}
 
 {% block title %}Notes{% endblock %}
 
@@ -15,7 +16,7 @@
 
 <section class="data-section">
     {% if notes %}
-    <table class="data-table">
+    <table class="data-table notes-table">
         <thead>
             <tr>
                 <th>ID</th>
@@ -30,10 +31,12 @@
             {% for note in notes %}
             <tr>
                 <td>{{ note.id }}</td>
-                <td>{{ note.item_name }}</td>
+                <td class="notes-item-name">
+                    <div class="notes-item-name">{{ note.item_name }}</div>
+                </td>
                 <td>{{ note.date }}</td>
                 <td>{{ note.record_type }}</td>
-                <td>{{ note.notes }}</td>
+                <td class="notes-column"><div class="notes-column-container">{{ note.notes|readable_notes }}</div></td>
                 <td class="notes-cell">
                     <button class="notes-button" data-record-id="{{ note.id }}" data-record-type="{{ note.record_type_key }}" data-note="{{ note.notes }}">&#x1f4dd;</button>
                 </td>

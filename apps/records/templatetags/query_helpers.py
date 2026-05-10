@@ -65,3 +65,10 @@ def get_min(dict, key):
 @register.filter
 def get_max(dict, key):
     return get_item(dict, f"{key}_max")
+
+@register.filter
+def readable_notes(text):
+    if not text:
+        return text
+    text = text.strip()
+    return mark_safe(text.replace(' | ', ' |<br>'))
